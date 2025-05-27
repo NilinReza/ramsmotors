@@ -1,3 +1,32 @@
-# https://www.robotstxt.org/robotstxt.html
+# Robots.txt for Rams Motors - Car Dealership
+# Allow all search engines to crawl the site
+
 User-agent: *
-Disallow:
+Allow: /
+Allow: /inventory
+Allow: /contact
+Allow: /inventory/*
+
+# Block admin and API endpoints from search engines
+Disallow: /admin/
+Disallow: /api/
+Disallow: /admin/*
+Disallow: /_next/
+Disallow: /static/
+
+# Block common files that shouldn't be indexed
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /sitemap_index.xml
+
+# Allow Google and Bing to crawl more frequently
+User-agent: Googlebot
+Crawl-delay: 1
+
+User-agent: Bingbot
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://ramsmotors.ca/sitemap.xml
+
+# Last updated: May 26, 2025
