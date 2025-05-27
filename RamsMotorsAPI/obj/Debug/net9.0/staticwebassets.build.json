@@ -1,0 +1,20 @@
+{
+  "Version": 1,
+  "Hash": "xtOIPQBSqd8v4729BVqB7KhBdX9+nU6ijrg2wc/i7VA=",
+  "Source": "RamsMotorsAPI",
+  "BasePath": "_content/RamsMotorsAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "RamsMotorsAPI\\wwwroot",
+      "Source": "RamsMotorsAPI",
+      "ContentRoot": "C:\\Users\\nilin\\ramsmotors\\RamsMotorsAPI\\wwwroot\\",
+      "BasePath": "_content/RamsMotorsAPI",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [],
+  "Endpoints": []
+}

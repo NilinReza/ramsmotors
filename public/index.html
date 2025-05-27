@@ -4,33 +4,73 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <!-- public/index.html -->
+    <meta name="theme-color" content="#dc2626" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Rams Motors - Quality pre-owned vehicles in Scarborough, ON. Professional dealership with extensive inventory, competitive prices, and exceptional customer service. Find your perfect car today!" />
+    <meta name="keywords" content="used cars, pre-owned vehicles, car dealership, Scarborough, Toronto, Ontario, quality cars, automotive, financing, car sales" />
+    <meta name="author" content="Rams Motors" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Rams Motors - Quality Pre-Owned Vehicles in Scarborough" />
+    <meta property="og:description" content="Your trusted dealership in Scarborough. Quality vehicles, exceptional service, and competitive prices. Browse our inventory of quality pre-owned cars." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ramsmotors.ca" />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+    <meta property="og:locale" content="en_CA" />
+    <meta property="og:site_name" content="Rams Motors" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Rams Motors - Quality Pre-Owned Vehicles" />
+    <meta name="twitter:description" content="Your trusted dealership in Scarborough. Quality vehicles, exceptional service, and competitive prices." />
+    <meta name="twitter:image" content="%PUBLIC_URL%/og-image.jpg" />
+    
+    <!-- Local Business Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "AutoDealer",
+      "name": "Rams Motors",
+      "image": "https://ramsmotors.ca/logo.png",
+      "description": "Quality pre-owned vehicle dealership in Scarborough, Ontario",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "2655 Lawrence Ave E unit m12",
+        "addressLocality": "Scarborough",
+        "addressRegion": "ON",
+        "postalCode": "M1P 2S3",
+        "addressCountry": "CA"
+      },
+      "telephone": "+14161234567",
+      "email": "ramsmotorsinc@gmail.com",
+      "url": "https://ramsmotors.ca",
+      "openingHours": [
+        "Mo-Fr 09:00-19:00",
+        "Sa 09:00-18:00", 
+        "Su 11:00-17:00"
+      ],
+      "paymentAccepted": ["Cash", "Credit Card", "Financing"],
+      "priceRange": "$$$"
+    }
+    </script>
+    
+    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap"
       rel="stylesheet"
     />
 
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://ramsmotors.ca" />
+    
+    <title>Rams Motors - Quality Pre-Owned Vehicles in Scarborough, ON</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

@@ -1,13 +1,325 @@
-import React from 'react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
+import { Wrapper } from "@googlemaps/react-wrapper";
+import {
+  Star,
+  MapPin,
+  Phone,
+  Clock,
+  Award,
+  Users,
+  Car,
+  Shield,
+} from "lucide-react";
+import Navbar from "../components/Navbar";
+import GoogleReviews from "../components/GoogleReviews";
+import cars from "../data/cars";
+
+// Google Maps Component
+const MapComponent = ({ center, zoom }) => {
+  const ref = React.useRef(null);
+  const [map, setMap] = React.useState();
+
+  React.useEffect(() => {
+    if (ref.current && !map && window.google) {
+      const newMap = new window.google.maps.Map(ref.current, {
+        center,
+        zoom,
+      });
+
+      // Add marker for dealership location
+      new window.google.maps.Marker({
+        position: center,
+        map: newMap,
+        title:
+          "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+      });
+
+      setMap(newMap);
+    }
+  }, [ref, map, center, zoom]);
+
+  return <div ref={ref} className="w-full h-full" />;
+};
+
+// Fallback Map Component
+const FallbackMap = () => (
+  <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center text-gray-600">
+    <MapPin className="w-16 h-16 mb-4" />
+    <h3 className="text-xl font-semibold mb-2">Rams Motors</h3>
+    <p className="text-center">
+      2655 Lawrence Ave E unit m12
+      <br />
+      Scarborough, ON M1P 2S3
+    </p>
+    <a
+      href="https://maps.google.com/?q=2655+Lawrence+Ave+E+unit+m12,+Scarborough,+ON+M1P+2S3"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+    >
+      Open in Google Maps
+    </a>
+  </div>
+);
 
 const Home = () => {
+  const center = { lat: 43.7315, lng: -79.2665 }; // Coordinates for the Scarborough address
+  const zoom = 15;
+
+  const featuredCars = cars.slice(0, 3); // Show first 3 cars
+
+  const features = [
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: "Quality Guarantee",
+      description: "All vehicles thoroughly inspected and certified",
+    },
+    {
+      icon: <Award className="w-8 h-8" />,
+      title: "Award Winning Service",
+      description: "Recognized for excellence in customer satisfaction",
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Expert Team",
+      description: "Experienced professionals ready to help you",
+    },
+    {
+      icon: <Car className="w-8 h-8" />,
+      title: "Wide Selection",
+      description: "Extensive inventory of quality pre-owned vehicles",
+    },
+  ];
   return (
-    <div className="text-center mt-16 font-serif">
-      <h1 className="text-5xl font-extrabold mb-6 text-blue-900 leading-tight">Welcome to Rams Motors</h1>
-      <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed">
-        We offer a wide selection of quality pre-owned vehicles at affordable prices. Explore our inventory and drive home your dream car today.
-      </p>
-    </div>
+    <>
+      <Helmet>
+        <title>Rams Motors - Quality Pre-Owned Vehicles in Scarborough, ON</title>
+        <meta name="description" content="Your trusted car dealership in Scarborough. Quality pre-owned vehicles, exceptional service, competitive prices. Browse our inventory of certified used cars. Call (416) 123-4567." />
+        <meta name="keywords" content="used cars Scarborough, pre-owned vehicles Toronto, car dealership Ontario, quality used cars, automotive financing, vehicle inspection, car sales Scarborough" />
+        <link rel="canonical" href="https://ramsmotors.ca/" />
+        <meta property="og:title" content="Rams Motors - Quality Pre-Owned Vehicles in Scarborough" />
+        <meta property="og:description" content="Your trusted dealership in Scarborough. Quality vehicles, exceptional service, and competitive prices. Browse our inventory today!" />
+        <meta property="og:url" content="https://ramsmotors.ca/" />
+      </Helmet>
+      <Navbar />
+
+      {/* Hero Section */}
+      <section className="pt-16 bg-gradient-to-br from-red-600 to-red-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 py-20">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              Welcome to Rams Motors
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">
+              Your trusted dealership in Scarborough - Quality cars, exceptional
+              service
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/inventory"
+                className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                View Inventory
+              </Link>
+              <a
+                href="tel:+14161234567"
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition-colors"
+              >
+                Call Now
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose Rams Motors?
+            </h2>
+            <p className="text-lg text-gray-600">
+              We're committed to providing you with the best car buying
+              experience
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="text-center p-6 bg-white rounded-lg shadow-lg"
+              >
+                <div className="text-red-600 flex justify-center mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Vehicles */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Featured Vehicles
+            </h2>
+            <p className="text-lg text-gray-600">
+              Check out some of our top quality vehicles
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredCars.map((car) => (
+              <div
+                key={car.id}
+                className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+              >
+                <div className="h-48 bg-gray-200 flex items-center justify-center">
+                  <Car className="w-16 h-16 text-gray-400" />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-2">
+                    {car.year} {car.make} {car.model}
+                  </h3>
+                  <p className="text-2xl font-bold text-red-600 mb-2">
+                    {car.price}
+                  </p>
+                  <p className="text-gray-600 mb-4">{car.description}</p>
+                  <Link
+                    to={`/vehicle/${car.id}`}
+                    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors inline-block"
+                  >
+                    View Details
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <Link
+              to="/inventory"
+              className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            >
+              View All Vehicles
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="py-16 bg-gray-900 text-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                About Rams Motors
+              </h2>
+              <p className="text-lg mb-6 opacity-90">
+                For over a decade, Rams Motors has been serving the Scarborough
+                community with quality pre-owned vehicles and exceptional
+                customer service. We believe in building lasting relationships
+                with our customers by providing honest, transparent service and
+                reliable vehicles.
+              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-400">500+</div>
+                  <div className="text-sm opacity-80">Happy Customers</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-400">10+</div>
+                  <div className="text-sm opacity-80">Years Experience</div>
+                </div>
+              </div>            </div>            
+            <GoogleReviews />
+          </div>
+        </div>      </section>
+
+      {/* Contact & Location */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Visit Our Showroom
+            </h2>
+            <p className="text-lg text-gray-600">
+              Come see our vehicles in person or contact us for more information
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Contact Info */}
+            <div className="space-y-6">
+              <div className="flex items-start space-x-4">
+                <MapPin className="w-6 h-6 text-red-600 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Address</h3>
+                  <p className="text-gray-600">
+                    2655 Lawrence Ave E unit m12
+                    <br />
+                    Scarborough, ON M1P 2S3
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <Phone className="w-6 h-6 text-red-600 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Phone</h3>
+                  <p className="text-gray-600">(416) 123-4567</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-4">
+                <Clock className="w-6 h-6 text-red-600 mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Hours</h3>
+                  <div className="text-gray-600">
+                    <p>Mon - Fri: 9:00 AM - 7:00 PM</p>
+                    <p>Saturday: 9:00 AM - 6:00 PM</p>
+                    <p>Sunday: 11:00 AM - 5:00 PM</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <a
+                  href="tel:+14161234567"
+                  className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors inline-block"
+                >
+                  Call Now
+                </a>
+              </div>
+            </div>
+
+            {/* Map */}
+            <div className="h-96 rounded-lg overflow-hidden shadow-lg">
+              {process.env.REACT_APP_GOOGLE_MAPS_API_KEY &&
+              process.env.REACT_APP_GOOGLE_MAPS_API_KEY !==
+                "your_google_maps_api_key_here" ? (
+                <Wrapper
+                  apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+                  render={() => null}
+                >
+                  <MapComponent center={center} zoom={zoom} />
+                </Wrapper>
+              ) : (
+                <FallbackMap />
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 };
 
