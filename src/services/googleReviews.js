@@ -1,218 +1,178 @@
-// Google Reviews API service
-// Updated to use Supabase Edge Function for serverless Google Reviews integration
+import React, { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
+import googleReviewsService from '../services/googleReviews';
 
-class GoogleReviewsService {
-  constructor() {
-    this.supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-    this.cache = new Map();
-    this.cacheExpiry = 60 * 60 * 1000; // 1 hour cache
-  }
+const GoogleReviews = () => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reviewsData, setReviewsData] = useState(null);
 
-  async fetchReviews() {
-    try {
-      // Check local cache first
-      const cached = this.cache.get('reviews');
-      if (cached && (Date.now() - cached.timestamp) < this.cacheExpiry) {
-        console.log('📱 Using cached Google Reviews');
-        return {
-          success: true,
-          data: cached.data,
-          source: 'local-cache'
-        };
-      }
-
-      // Try Supabase Edge Function first (real Google Reviews)
-      if (this.supabaseUrl && this.supabaseUrl !== 'https://your-project-id.supabase.co') {
-        try {
-          console.log('🌐 Fetching reviews from Supabase Edge Function...');
-          const response = await fetch(`${this.supabaseUrl}/functions/v1/google-reviews`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`
-            }
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-              // Cache the successful response
-              this.cache.set('reviews', {
-                data: result.data,
-                timestamp: Date.now()
-              });
-              
-              console.log(`✅ Successfully fetched ${result.data.reviews.length} Google Reviews (${result.source})`);
-              return result;
-            }
-          }
-        } catch (error) {
-          console.warn('⚠️ Supabase Edge Function failed:', error.message);
-        }
-      }
-
-      // Fallback to enhanced proxy service
-      console.log('🔄 Using enhanced proxy service...');
-      return await this.enhancedProxyFetch();
-
-    } catch (error) {
-      console.error('❌ All Google Reviews methods failed:', error);
-      return this.getFallbackReviews();
-    }
-  }
-
-  async enhancedProxyFetch() {
-    // Try multiple proxy approaches
-    const proxyUrls = [
-      'https://api.allorigins.win/get?url=',
-      'https://cors-anywhere.herokuapp.com/',
-      'https://thingproxy.freeboard.io/fetch/'
-    ];
-
-    const apiKey = process.env.REACT_APP_GOOGLE_PLACES_API_KEY;
-    const placeId = process.env.REACT_APP_GOOGLE_PLACE_ID;
-
-    if (!apiKey || !placeId) {
-      throw new Error('Missing Google Places API configuration');
-    }
-
-    const googleApiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}`;
-
-    for (const proxyUrl of proxyUrls) {
+  useEffect(() => {
+    const loadReviews = async () => {
       try {
-        const response = await fetch(`${proxyUrl}${encodeURIComponent(googleApiUrl)}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          let googleData;
-
-          // Handle different proxy response formats
-          if (data.contents) {
-            googleData = JSON.parse(data.contents);
-          } else if (data.result) {
-            googleData = data;
-          } else {
-            googleData = data;
-          }
-
-          if (googleData.status === 'OK' && googleData.result) {
-            const transformedData = this.transformGoogleData(googleData.result);
-            
-            // Cache the successful response
-            this.cache.set('reviews', {
-              data: transformedData,
-              timestamp: Date.now()
-            });
-
-            return {
-              success: true,
-              data: transformedData,
-              source: 'proxy-live'
-            };
-          }
+        setLoading(true);
+        setError(null);
+        
+        console.log('🔄 Loading Google Reviews...');
+        const result = await googleReviewsService.fetchReviews();
+        
+        if (result.success && result.data) {
+          console.log(`✅ Loaded ${result.data.reviews.length} reviews from ${result.source}`);
+          setReviewsData(result.data);
+          setReviews(result.data.reviews.map(review => 
+            googleReviewsService.formatReview(review)
+          ));
+        } else {
+          throw new Error('Failed to fetch reviews');
         }
+        
       } catch (error) {
-        console.warn(`Proxy ${proxyUrl} failed:`, error.message);
-        continue;
-      }
-    }
-
-    throw new Error('All proxy methods failed');
-  }
-
-  transformGoogleData(result) {
-    const reviews = result.reviews || [];
-    
-    return {
-      reviews: reviews.slice(0, 5).map(review => ({
-        author: review.author_name,
-        rating: review.rating,
-        text: review.text,
-        date: new Date(review.time * 1000).toISOString(),
-        profilePhoto: review.profile_photo_url || null,
-        source: 'google'
-      })),
-      overall_rating: result.rating,
-      total_reviews: result.user_ratings_total,
-      fetched_at: new Date().toISOString()
-    };
-  }
-
-  getFallbackReviews() {
-    const fallbackData = {
-      reviews: [
-        {
-          author: "Recent Customer",
-          rating: 5,
-          text: "Excellent service and quality vehicles. The team at Rams Motors made the car buying process smooth and stress-free.",
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          profilePhoto: null,
-          source: 'recent-feedback'
-        },
-        {
-          author: "Satisfied Buyer", 
-          rating: 5,
-          text: "Found exactly what I was looking for at a great price. Highly recommend Rams Motors for anyone looking for a reliable used car.",
-          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          profilePhoto: null,
-          source: 'recent-feedback'
-        },
-        {
-          author: "Happy Customer",
-          rating: 4,
-          text: "Great selection of vehicles and professional staff. The financing options made it easy to get the car I wanted.",
-          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-          profilePhoto: null,
-          source: 'recent-feedback'
+        console.error('❌ Error loading reviews:', error);
+        setError('Unable to load reviews at this time');
+        
+        // Try to get fallback reviews as last resort
+        try {
+          const fallbackResult = googleReviewsService.getFallbackReviews();
+          if (fallbackResult.success) {
+            setReviewsData(fallbackResult.data);
+            setReviews(fallbackResult.data.reviews.map(review => 
+              googleReviewsService.formatReview(review)
+            ));
+            setError(null); // Clear error since we have fallback data
+          }
+        } catch (fallbackError) {
+          console.error('❌ Even fallback reviews failed:', fallbackError);
         }
-      ],
-      overall_rating: 4.7,
-      total_reviews: 89,
-      fetched_at: new Date().toISOString()
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Cache fallback data too
-    this.cache.set('reviews', {
-      data: fallbackData,
-      timestamp: Date.now()
-    });
+    loadReviews();
+  }, []);
 
-    console.log('📝 Using fallback reviews (recent customer feedback)');
-    return {
-      success: true,
-      data: fallbackData,
-      source: 'fallback'
-    };
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <Star
+        key={index}
+        className={`w-4 h-4 ${
+          index < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg p-6">
+        <h3 className="text-xl font-semibold mb-4 text-gray-900">Customer Reviews</h3>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <div key={star} className="h-4 w-4 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+              </div>
+              <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  // Format review for display compatibility
-  formatReview(review) {
-    return {
-      ...review,
-      relativeTime: this.getRelativeTime(review.date),
-      isGoogle: review.source === 'google',
-      isFallback: review.source === 'recent-feedback' || review.source === 'fallback'
-    };
+  if (error && (!reviews || reviews.length === 0)) {
+    return (
+      <div className="bg-white rounded-lg p-6">
+        <h3 className="text-xl font-semibold mb-4 text-gray-900">Customer Reviews</h3>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Star className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Reviews Temporarily Unavailable
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>We're working to resolve this issue. Please check back later or visit our Google Business page directly.</p>
+              </div>
+              <div className="mt-4">
+                <a
+                  href="https://www.google.com/maps/place/Rams+Motors/@43.751455,-79.263287,15z"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-800 underline hover:text-yellow-900"
+                >
+                  View reviews on Google Maps →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  getRelativeTime(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '1 day ago';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
-  }
-}
+  return (
+    <div className="bg-white rounded-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-gray-900">Google Reviews</h3>
+        <div className="flex items-center space-x-2">
+          <div className="flex">{renderStars(Math.round(reviewsData?.overall_rating || 5))}</div>
+          <span className="text-sm text-gray-600">
+            {reviewsData?.overall_rating?.toFixed(1) || '5.0'} ({reviewsData?.total_reviews || 0} reviews)
+          </span>
+        </div>
+      </div>
 
-const googleReviewsService = new GoogleReviewsService();
-export default googleReviewsService;
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {reviews.map((review, index) => (
+          <div key={review.id || index} className="border-b border-gray-100 last:border-b-0 pb-4 last:pb-0">
+            <div className="flex items-start space-x-3">
+              {review.profilePhoto && (
+                <img
+                  src={review.profilePhoto}
+                  alt={review.author}
+                  className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              )}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-gray-900">{review.author}</span>
+                    <div className="flex">{renderStars(review.rating)}</div>
+                  </div>
+                  <span className="text-sm text-gray-500">{review.relativeTime}</span>
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">{review.text}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <a
+          href="https://www.google.com/maps/place/Rams+Motors/@43.751455,-79.263287,15z"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+        >
+          View all reviews on Google Maps →
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default GoogleReviews;

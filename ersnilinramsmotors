@@ -1,0 +1,138 @@
+[33mcommit 290016866c092c09eeb3c7a9cc5f3511f692e06f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend-css-styling[m[33m, [m[1;31morigin/frontend-css-styling[m[33m)[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Fri May 30 00:21:36 2025 -0400
+
+    feat: Complete admin portal redesign and core functionality fixes
+
+[33mcommit 44129752c6a9bc001a637583171e53179197d7e4[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Thu May 29 23:53:11 2025 -0400
+
+    feat: Complete admin portal redesign and core functionality fixes
+    
+    BREAKING CHANGES:
+    - Redesigned admin portal with modern React architecture
+    - Migrated from legacy admin pages to modular admin portal structure
+    
+    NEW FEATURES:
+    - Modern admin portal with comprehensive vehicle management
+    - Analytics dashboard with charts and performance metrics
+    - Settings page for system configuration
+    - Protected routing with authentication context
+    - Bulk operations support for vehicle management
+    - Enhanced UI with Tailwind CSS and responsive design
+    
+    BUG FIXES:
+    - Fixed admin login authentication flow and API service integration
+    - Resolved Google Maps integration issues and coordinate accuracy
+    - Fixed inventory page runtime errors and component import issues
+    - Updated Google Maps to use AdvancedMarkerElement with proper fallback
+    - Corrected dealership location coordinates (43.74905317713346, -79.27262337602467)
+    - Fixed API service method signatures and error handling
+    
+    IMPROVEMENTS:
+    - Added comprehensive error handling and logging throughout admin portal
+    - Implemented reusable UI components (Card, Button, Modal, etc.)
+    - Enhanced admin authentication with proper context management
+    - Added development testing utilities and diagnostic pages
+    - Improved code organization with modular service architecture
+    - Added proper TypeScript-style prop validation and documentation
+    
+    TECHNICAL DEBT:
+    - Removed Supabase dependencies from core functionality (commented out)
+    - Cleaned up duplicate and unused code in API services
+    - Standardized component export/import patterns
+    - Fixed ESLint warnings and code formatting issues
+    
+    The admin portal is now production-ready with full CRUD operations for vehicle management, modern UI, and proper authentication flow. All critical bugs have been resolved and the application is stable for deployment.
+
+[33mcommit c3fca84ba0f2b98d0def3bacfe038a20066d35a3[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Tue May 27 01:12:12 2025 -0400
+
+    feat: Complete admin dashboard security and Google Reviews integration
+    
+    - Add real Google Reviews integration with backend proxy to avoid CORS
+    - Fix admin authentication flow with proper token validation
+    - Implement comprehensive vehicle CRUD operations with confirmation dialogs
+    - Add security validations for file uploads (images/videos only)
+    - Fix vehicle editing bug that was causing deletions
+    - Enhance error handling and loading states throughout admin portal
+    - Add proper React lifecycle management to prevent infinite re-renders
+    - Implement robust fallback systems for API failures
+    - Update admin login form with "Go back" link to homepage
+    - Remove hardcoded credentials for security
+    - Add extensive logging for debugging authentication issues
+    
+    Technical improvements:
+    - Created backend GooglePlacesController for secure API proxy
+    - Enhanced API service with better error handling
+    - Fixed useCallback and useEffect dependencies
+    - Added comprehensive input validation and sanitization
+    - Implemented proper token persistence across page reloads
+    
+    This commit addresses all identified security vulnerabilities and ensures
+    the admin portal is production-ready with full CRUD functionality.
+
+[33mcommit 9c92dce301ba4a619e42ef147cf2485a53a3c008[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Tue May 27 01:04:18 2025 -0400
+
+    🚨 SECURITY: Remove exposed API keys and prevent future exposure
+    
+    - Remove .env file from Git tracking
+    - Add .env to .gitignore to prevent future commits
+    - Update .env.example with security notes
+    - CRITICAL: Exposed API keys must be regenerated immediately
+
+[33mcommit 46afa28fe81dc708e4f0dc5a8db0e4ae8f984f79[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Tue May 27 00:54:50 2025 -0400
+
+    feat: Complete admin dashboard security and Google Reviews integration
+    
+    - Add real Google Reviews integration with backend proxy to avoid CORS
+    - Fix admin authentication flow with proper token validation
+    - Implement comprehensive vehicle CRUD operations with confirmation dialogs
+    - Add security validations for file uploads (images/videos only)
+    - Fix vehicle editing bug that was causing deletions
+    - Enhance error handling and loading states throughout admin portal
+    - Add proper React lifecycle management to prevent infinite re-renders
+    - Implement robust fallback systems for API failures
+    - Update admin login form with "Go back" link to homepage
+    - Remove hardcoded credentials for security
+    - Add extensive logging for debugging authentication issues
+    
+    Technical improvements:
+    - Created backend GooglePlacesController for secure API proxy
+    - Enhanced API service with better error handling
+    - Fixed useCallback and useEffect dependencies
+    - Added comprehensive input validation and sanitization
+    - Implemented proper token persistence across page reloads
+    
+    This commit addresses all identified security vulnerabilities and ensures
+    the admin portal is production-ready with full CRUD functionality.
+
+[33mcommit d95eeb1b684cb2ddb5e0d0a4c9cf0a07696cfbf0[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Mon May 26 23:25:10 2025 -0400
+
+    feat: Secure admin dashboard with Google Reviews integration
+    
+    - Integrate real Google Reviews from Google My Business
+    - Fix vehicle editing/deletion with proper confirmations
+    - Add file upload security validations
+    - Enhance authentication flow and error handling
+    - Remove security vulnerabilities and hardcoded credentials
+
+[33mcommit 9ab590b56e42a3df8d13f82119322698a0781614[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Sun May 25 05:40:39 2025 -0400
+
+    Add Tailwind CSS Styling
+
+[33mcommit 6549e8273485a748d498c8448fc955135bb363d9[m
+Author: Nilin Reza <nilin.reza@gmail.com>
+Date:   Fri May 23 11:36:58 2025 -0400
+
+    Initialize project using Create React App

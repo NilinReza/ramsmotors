@@ -13,12 +13,17 @@ const VehicleDetail = () => {
   useEffect(() => {
     loadVehicle();
   }, [id]);
-
   const loadVehicle = async () => {
     try {
       setIsLoading(true);
-      const data = await apiService.getVehicle(id);
-      setVehicle(data);
+      const response = await apiService.getVehicle(id);
+      console.log('🔍 API Response:', response); // Debug log
+      
+      // Handle API response structure - extract vehicle from response.data
+      const vehicleData = response.data || response;
+      console.log('🔍 Vehicle Data:', vehicleData); // Debug log
+      
+      setVehicle(vehicleData);
     } catch (error) {
       setError('Vehicle not found');
       console.error('Error loading vehicle:', error);
@@ -158,11 +163,9 @@ const VehicleDetail = () => {
                 }`}>
                   {vehicle.status}
                 </span>
-              </div>
-
-              {vehicle.description && (
+              </div>              {vehicle.description && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description:</h3>
                   <p className="text-gray-700 leading-relaxed">{vehicle.description}</p>
                 </div>
               )}
@@ -197,25 +200,42 @@ const VehicleDetail = () => {
                   <div className="flex justify-between border-b border-gray-200 pb-2">
                     <span className="text-gray-600">Fuel Type</span>
                     <span className="font-medium">{vehicle.fuelType}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-gray-200 pb-2">
+                  </div>                  <div className="flex justify-between border-b border-gray-200 pb-2">
                     <span className="text-gray-600">Body Style</span>
                     <span className="font-medium">{vehicle.bodyStyle}</span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-200 pb-2">
-                    <span className="text-gray-600">Color</span>
-                    <span className="font-medium">{vehicle.color}</span>
-                  </div>
+                  {vehicle.color && (
+                    <div className="flex justify-between border-b border-gray-200 pb-2">
+                      <span className="text-gray-600">Color</span>
+                      <span className="font-medium">{vehicle.color}</span>
+                    </div>
+                  )}
                   {vehicle.engineSize && (
                     <div className="flex justify-between border-b border-gray-200 pb-2">
                       <span className="text-gray-600">Engine</span>
                       <span className="font-medium">{vehicle.engineSize}</span>
                     </div>
-                  )}
-                </div>
+                  )}                </div>
               </div>
             </div>
           </div>
+
+          {/* Features Section */}
+          {vehicle.features && vehicle.features.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Features</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {vehicle.features.map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-md">
+                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Videos Section */}
           {vehicle.videos && vehicle.videos.length > 0 && (

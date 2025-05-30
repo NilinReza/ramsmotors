@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RamsMotorsAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c3fca84ba0f2b98d0def3bacfe038a20066d35a3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+290016866c092c09eeb3c7a9cc5f3511f692e06f")]
 [assembly: System.Reflection.AssemblyProductAttribute("RamsMotorsAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RamsMotorsAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

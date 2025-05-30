@@ -1,0 +1,13 @@
+# Netlify redirects file for handling CORS proxying
+
+# Proxy for Google Places API
+/maps-api/* https://maps.googleapis.com/:splat 200
+
+# Google Places API proxy to avoid CORS
+/api/google-places/*  https://maps.googleapis.com/maps/api/place/:splat  200
+
+# Handle CORS headers
+/api/google-places/*  https://maps.googleapis.com/maps/api/place/:splat  200  Access-Control-Allow-Origin: *
+
+# Fallback for SPA routing
+/*  /index.html  200

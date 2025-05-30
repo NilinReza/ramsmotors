@@ -74,18 +74,16 @@ const VehicleFilters = ({ onFilterChange, onClearFilters, activeFilters = {} }) 
             </button>
           )}
         </div>
-      </div>
-
-      {/* Quick Filter Tags */}
+      </div>      {/* Quick Filter Tags */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {['Available', 'Sold', 'Featured', 'New Arrivals'].map((status) => (
+        {['Available', 'Sold', 'Pending', 'Featured'].map((status) => (
           <button
             key={status}
             onClick={() => handleFilterChange('status', 
-              localFilters.status === status.toLowerCase().replace(' ', '_') ? '' : status.toLowerCase().replace(' ', '_')
+              localFilters.status === status ? '' : status
             )}
             className={`px-3 py-1 rounded-full text-sm transition-colors ${
-              localFilters.status === status.toLowerCase().replace(' ', '_')
+              localFilters.status === status
                 ? 'bg-blue-100 text-blue-800 border border-blue-300'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
             }`}
@@ -168,9 +166,7 @@ const VehicleFilters = ({ onFilterChange, onClearFilters, activeFilters = {} }) 
                 onChange={(e) => handleFilterChange('maxMileage', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
-
-            {/* Transmission */}
+            </div>            {/* Transmission */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Transmission</label>
               <select
@@ -179,13 +175,11 @@ const VehicleFilters = ({ onFilterChange, onClearFilters, activeFilters = {} }) 
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Transmissions</option>
-                <option value="automatic">Automatic</option>
-                <option value="manual">Manual</option>
-                <option value="cvt">CVT</option>
+                <option value="Automatic">Automatic</option>
+                <option value="Manual">Manual</option>
+                <option value="CVT">CVT</option>
               </select>
-            </div>
-
-            {/* Fuel Type */}
+            </div>            {/* Fuel Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
               <select
@@ -194,14 +188,12 @@ const VehicleFilters = ({ onFilterChange, onClearFilters, activeFilters = {} }) 
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Fuel Types</option>
-                <option value="gasoline">Gasoline</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="electric">Electric</option>
-                <option value="diesel">Diesel</option>
+                <option value="Gasoline">Gasoline</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Electric">Electric</option>
+                <option value="Diesel">Diesel</option>
               </select>
-            </div>
-
-            {/* Body Type */}
+            </div>            {/* Body Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Body Type</label>
               <select
@@ -210,13 +202,13 @@ const VehicleFilters = ({ onFilterChange, onClearFilters, activeFilters = {} }) 
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Body Types</option>
-                <option value="sedan">Sedan</option>
-                <option value="suv">SUV</option>
-                <option value="truck">Truck</option>
-                <option value="coupe">Coupe</option>
-                <option value="hatchback">Hatchback</option>
-                <option value="convertible">Convertible</option>
-                <option value="wagon">Wagon</option>
+                <option value="Sedan">Sedan</option>
+                <option value="SUV">SUV</option>
+                <option value="Truck">Truck</option>
+                <option value="Coupe">Coupe</option>
+                <option value="Hatchback">Hatchback</option>
+                <option value="Convertible">Convertible</option>
+                <option value="Wagon">Wagon</option>
               </select>
             </div>
           </div>

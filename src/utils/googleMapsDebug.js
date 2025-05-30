@@ -10,7 +10,6 @@ export const debugGoogleMapsAPI = async (apiKey) => {
     return { success: false, error: 'No API key' };
   }
   
-  console.log('🔑 API Key:', apiKey.substring(0, 20) + '...');
   
   // Test if the API key works with a simple request
   try {

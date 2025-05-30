@@ -1,8 +1,30 @@
 // Mock API Service for Testing UI Without Backend
 // This simulates the Supabase API responses for immediate testing
 
-// Mock vehicle data
-const mockVehicles = [
+// Load vehicles from localStorage or use default mock data
+const loadVehiclesFromStorage = () => {
+  try {
+    const stored = localStorage.getItem('mockVehicles');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.warn('Failed to load vehicles from localStorage:', error);
+  }
+  return [];
+};
+
+// Save vehicles to localStorage
+const saveVehiclesToStorage = (vehicles) => {
+  try {
+    localStorage.setItem('mockVehicles', JSON.stringify(vehicles));
+  } catch (error) {
+    console.warn('Failed to save vehicles to localStorage:', error);
+  }
+};
+
+// Default mock vehicle data
+const defaultMockVehicles = [
   {
     id: '1',
     vin: 'JH4TB2H26CC000001',
@@ -14,14 +36,15 @@ const mockVehicles = [
     transmission: 'Automatic',
     fuelType: 'Gasoline',
     bodyStyle: 'Sedan',
-    status: 'Available',
+    color: 'Silver Metallic',
+    engineSize: '2.0L 4-Cylinder',    status: 'Available',
     description: 'Excellent condition Honda Accord with low mileage.',
+    features: ['Air Conditioning', 'Bluetooth', 'Backup Camera', 'Cruise Control'],
     images: [
       {
         url: 'https://via.placeholder.com/400x300/007bff/ffffff?text=Honda+Accord',
         publicId: 'mock-honda-accord-1'
-      }
-    ],
+      }    ],
     videos: [],
     createdAt: new Date().toISOString()
   },
@@ -36,8 +59,10 @@ const mockVehicles = [
     transmission: 'Automatic',
     fuelType: 'Gasoline',
     bodyStyle: 'Sedan',
-    status: 'Available',
+    color: 'Pearl White',
+    engineSize: '2.5L 4-Cylinder',    status: 'Available',
     description: 'Reliable Toyota Camry in great condition.',
+    features: ['Air Conditioning', 'Bluetooth', 'Navigation System', 'Heated Seats'],
     images: [
       {
         url: 'https://via.placeholder.com/400x300/28a745/ffffff?text=Toyota+Camry',
@@ -46,8 +71,7 @@ const mockVehicles = [
     ],
     videos: [],
     createdAt: new Date().toISOString()
-  },
-  {
+  },  {
     id: '3',
     vin: 'JH4TB2H26CC000003',
     make: 'Ford',
@@ -58,8 +82,10 @@ const mockVehicles = [
     transmission: 'Automatic',
     fuelType: 'Gasoline',
     bodyStyle: 'Truck',
-    status: 'Pending',
+    color: 'Shadow Black',
+    engineSize: '3.5L V6 Twin Turbo',    status: 'Pending',
     description: 'Powerful Ford F-150 truck with excellent towing capacity.',
+    features: ['Air Conditioning', 'Bluetooth', 'Backup Camera', 'Remote Start', 'Keyless Entry'],
     images: [
       {
         url: 'https://via.placeholder.com/400x300/dc3545/ffffff?text=Ford+F-150',
@@ -80,18 +106,25 @@ const mockVehicles = [
     transmission: 'Automatic',
     fuelType: 'Gasoline',
     bodyStyle: 'SUV',
-    status: 'Sold',
+    color: 'Alpine White',
+    engineSize: '3.0L I6 Twin Turbo',    status: 'Sold',
     description: 'Luxury BMW X5 with premium features.',
-    images: [
+    features: ['Air Conditioning', 'Bluetooth', 'Navigation System', 'Leather Seats', 'Sunroof', 'Heated Seats'],images: [
       {
         url: 'https://via.placeholder.com/400x300/6c757d/ffffff?text=BMW+X5',
         publicId: 'mock-bmw-x5-1'
       }
     ],
     videos: [],
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString()  }
 ];
+
+// Initialize vehicles from localStorage or use defaults
+let mockVehicles = loadVehiclesFromStorage();
+if (mockVehicles.length === 0) {
+  mockVehicles = [...defaultMockVehicles];
+  saveVehiclesToStorage(mockVehicles);
+}
 
 // Simulate API delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -215,18 +248,43 @@ const mockApiService = {
       throw new Error('Vehicle not found');
     }
     return { data: vehicle };
-  },
-
-  async createVehicle(vehicleData) {
+  },  async createVehicle(vehicleData) {
     await delay(1000);
+    
+    // Process images if they exist
+    const processedImages = [];
+    if (vehicleData.images && vehicleData.images.length > 0) {
+      vehicleData.images.forEach((imageDataUrl, index) => {
+        processedImages.push({
+          url: imageDataUrl, // Use the base64 data URL directly for display
+          publicId: `mock-vehicle-${Date.now()}-${index}`
+        });
+      });
+    }
+    
+    // Process videos if they exist
+    const processedVideos = [];
+    if (vehicleData.videos && vehicleData.videos.length > 0) {
+      vehicleData.videos.forEach((videoDataUrl, index) => {
+        processedVideos.push({
+          url: videoDataUrl, // Use the base64 data URL directly for display
+          publicId: `mock-video-${Date.now()}-${index}`,
+          thumbnailUrl: 'https://via.placeholder.com/400x300/007bff/ffffff?text=Video+Thumbnail'
+        });
+      });
+    }
+    
     const newVehicle = {
       id: (mockVehicles.length + 1).toString(),
       ...vehicleData,
-      images: vehicleData.images || [],
-      videos: vehicleData.videos || [],
+      images: processedImages,
+      videos: processedVideos,
       createdAt: new Date().toISOString()
     };
+    
+    console.log('🧪 Mock API: Created vehicle with images:', newVehicle.images.length, 'videos:', newVehicle.videos.length);
     mockVehicles.push(newVehicle);
+    saveVehiclesToStorage(mockVehicles);
     return { data: newVehicle };
   },
 
@@ -235,8 +293,8 @@ const mockApiService = {
     const index = mockVehicles.findIndex(v => v.id === id);
     if (index === -1) {
       throw new Error('Vehicle not found');
-    }
-    mockVehicles[index] = { ...mockVehicles[index], ...updates };
+    }    mockVehicles[index] = { ...mockVehicles[index], ...updates };
+    saveVehiclesToStorage(mockVehicles);
     return { data: mockVehicles[index] };
   },
 
@@ -245,8 +303,8 @@ const mockApiService = {
     const index = mockVehicles.findIndex(v => v.id === id);
     if (index === -1) {
       throw new Error('Vehicle not found');
-    }
-    const deletedVehicle = mockVehicles.splice(index, 1)[0];
+    }    const deletedVehicle = mockVehicles.splice(index, 1)[0];
+    saveVehiclesToStorage(mockVehicles);
     return { data: deletedVehicle };
   },
 
@@ -258,8 +316,8 @@ const mockApiService = {
       const index = mockVehicles.findIndex(v => v.id === id);
       if (index !== -1) {
         deletedVehicles.push(mockVehicles.splice(index, 1)[0]);
-      }
-    });
+      }    });
+    saveVehiclesToStorage(mockVehicles);
     return { 
       data: deletedVehicles, 
       count: deletedVehicles.length 

@@ -1,6 +1,6 @@
 // Modern Vehicle Management Page
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
 import { vehicleService } from '../services/vehicleService';
 import VehicleList from '../components/VehicleList';
 import VehicleForm from '../components/VehicleForm';
@@ -21,14 +21,9 @@ const VehicleManagement = () => {
     maxPrice: ''
   });
   const navigate = useNavigate();
-
   useEffect(() => {
     loadVehicles();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [vehicles, filters]);
 
   const loadVehicles = async () => {
     try {
@@ -47,8 +42,7 @@ const VehicleManagement = () => {
       setIsLoading(false);
     }
   };
-
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = vehicles;
 
     // Search filter
@@ -58,7 +52,8 @@ const VehicleManagement = () => {
         vehicle.make?.toLowerCase().includes(searchTerm) ||
         vehicle.model?.toLowerCase().includes(searchTerm) ||
         vehicle.year?.toString().includes(searchTerm) ||
-        vehicle.color?.toLowerCase().includes(searchTerm)
+        vehicle.color?.toLowerCase().includes(searchTerm) ||
+        vehicle.vin?.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -67,17 +62,26 @@ const VehicleManagement = () => {
       filtered = filtered.filter(vehicle => vehicle.status === filters.status);
     }
 
-    // Make filter
+    // Make filter (case-insensitive, partial match)
     if (filters.make) {
-      filtered = filtered.filter(vehicle => vehicle.make === filters.make);
+      filtered = filtered.filter(vehicle => vehicle.make && vehicle.make.toLowerCase().includes(filters.make.toLowerCase()));
     }
 
-    // Model filter
+    // Model filter (case-insensitive, partial match)
     if (filters.model) {
-      filtered = filtered.filter(vehicle => vehicle.model === filters.model);
+      filtered = filtered.filter(vehicle => vehicle.model && vehicle.model.toLowerCase().includes(filters.model.toLowerCase()));
     }
 
-    // Price filters
+    // Year filter (exact match)
+    if (filters.year) {
+      filtered = filtered.filter(vehicle => vehicle.year && vehicle.year.toString() === filters.year.toString());
+    }
+
+    // Price range filter
+    if (filters.priceRange) {
+      const [min, max] = filters.priceRange.split('-').map(Number);
+      filtered = filtered.filter(vehicle => vehicle.price >= min && vehicle.price <= max);
+    }
     if (filters.minPrice) {
       filtered = filtered.filter(vehicle => parseFloat(vehicle.price) >= parseFloat(filters.minPrice));
     }
@@ -85,11 +89,46 @@ const VehicleManagement = () => {
       filtered = filtered.filter(vehicle => parseFloat(vehicle.price) <= parseFloat(filters.maxPrice));
     }
 
+    // Max Mileage filter
+    if (filters.maxMileage) {
+      filtered = filtered.filter(vehicle => vehicle.mileage && vehicle.mileage <= parseInt(filters.maxMileage));
+    }
+
+    // Transmission filter (case-insensitive)
+    if (filters.transmission) {
+      filtered = filtered.filter(vehicle => vehicle.transmission && vehicle.transmission.toLowerCase() === filters.transmission.toLowerCase());
+    }
+
+    // Fuel Type filter (case-insensitive)
+    if (filters.fuelType) {
+      filtered = filtered.filter(vehicle => vehicle.fuelType && vehicle.fuelType.toLowerCase() === filters.fuelType.toLowerCase());
+    }
+
+    // Body Type filter (case-insensitive)
+    if (filters.bodyType) {
+      filtered = filtered.filter(vehicle => vehicle.bodyStyle && vehicle.bodyStyle.toLowerCase() === filters.bodyType.toLowerCase());
+    }
+
     setFilteredVehicles(filtered);
-  };
+  }, [vehicles, filters]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      make: '',
+      model: '',
+      minPrice: '',
+      maxPrice: ''
+    });
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
@@ -128,6 +167,76 @@ const VehicleManagement = () => {
       console.error('Bulk action failed:', error);
       setError('Bulk action failed. Please try again.');
     }
+  };
+  const handleFormSubmit = async (vehicleData) => {
+    try {
+      await vehicleService.createVehicle(vehicleData);
+      navigate('/admin/vehicles');
+      await loadVehicles();
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setError('Failed to save vehicle. Please try again.');
+    }
+  };
+  const handleEditFormSubmit = async (vehicleId, vehicleData) => {
+    try {
+      await vehicleService.updateVehicle(vehicleId, vehicleData);
+      navigate('/admin/vehicles');
+      await loadVehicles();
+    } catch (error) {
+      console.error('Edit form submission error:', error);
+      setError('Failed to update vehicle. Please try again.');
+    }
+  };
+  const handleFormCancel = () => {
+    navigate('/admin/vehicles');
+  };
+
+  // Component to handle edit form with vehicle ID
+  const EditVehicleForm = () => {
+    const { id } = useParams();
+    const [vehicleData, setVehicleData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const loadVehicle = async () => {
+        try {
+          const response = await vehicleService.getVehicle(id);
+          setVehicleData(response.data);
+        } catch (error) {
+          console.error('Failed to load vehicle:', error);
+          setError('Failed to load vehicle data.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (id) {
+        loadVehicle();
+      }
+    }, [id]);
+
+    const handleEditSubmit = async (formData) => {
+      await handleEditFormSubmit(id, formData);
+    };
+
+    if (isLoading) {
+      return (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading vehicle...</p>
+        </div>
+      );
+    }
+
+    return (
+      <VehicleForm
+        vehicle={vehicleData}
+        isEdit={true}
+        onSubmit={handleEditSubmit}
+        onCancel={handleFormCancel}
+      />
+    );
   };
 
   return (
@@ -180,6 +289,7 @@ const VehicleManagement = () => {
               <VehicleFilters
                 filters={filters}
                 onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
                 vehicles={vehicles}
               />
             </div>
@@ -211,14 +321,10 @@ const VehicleManagement = () => {
               >
                 ← Back to Vehicle List
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900 mt-2">Add New Vehicle</h1>
-            </div>
+              <h1 className="text-3xl font-bold text-gray-900 mt-2">Add New Vehicle</h1>            </div>
             <VehicleForm
-              onSuccess={() => {
-                navigate('/admin/vehicles');
-                loadVehicles();
-              }}
-              onCancel={() => navigate('/admin/vehicles')}
+              onSubmit={handleFormSubmit}
+              onCancel={handleFormCancel}
             />
           </div>
         } />
@@ -233,20 +339,10 @@ const VehicleManagement = () => {
               >
                 ← Back to Vehicle List
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900 mt-2">Edit Vehicle</h1>
-            </div>
-            <VehicleForm
-              isEdit={true}
-              onSuccess={() => {
-                navigate('/admin/vehicles');
-                loadVehicles();
-              }}
-              onCancel={() => navigate('/admin/vehicles')}
-            />
+              <h1 className="text-3xl font-bold text-gray-900 mt-2">Edit Vehicle</h1>            </div>
+            <EditVehicleForm />
           </div>
-        } />
-
-        {/* Import Vehicles */}
+        } />        {/* Import Vehicles */}
         <Route path="import" element={
           <div>
             <div className="mb-8">
@@ -259,11 +355,19 @@ const VehicleManagement = () => {
               <h1 className="text-3xl font-bold text-gray-900 mt-2">Import Vehicles</h1>
             </div>
             <VehicleImport
-              onSuccess={() => {
-                navigate('/admin/vehicles');
-                loadVehicles();
+              onImport={async (data, settings) => {
+                // Handle the import process
+                try {
+                  console.log('Importing vehicles:', data, settings);
+                  // Process imported vehicles here
+                  await loadVehicles();
+                  navigate('/admin/vehicles');
+                } catch (error) {
+                  console.error('Import failed:', error);
+                  setError('Failed to import vehicles. Please try again.');
+                }
               }}
-              onCancel={() => navigate('/admin/vehicles')}
+              onClose={() => navigate('/admin/vehicles')}
             />
           </div>
         } />

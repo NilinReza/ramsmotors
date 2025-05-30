@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import apiService from './services/api';
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
 import VehicleDetail from './pages/VehicleDetail';
+import About from './pages/About';
 import Contact from './pages/Contact';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -15,6 +17,21 @@ import Footer from './components/Footer';
 import AdminPortal from './admin';
 
 const App = () => {
+  useEffect(() => {
+    // Initialize demo vehicles from Supabase on app startup
+    const initializeDemoVehicles = async () => {
+      try {
+        // Call your API service or Supabase function here
+        await apiService.initializeDemoVehicles();
+        console.log('Demo vehicles initialized successfully');
+      } catch (error) {
+        console.error('Error initializing demo vehicles:', error);
+      }
+    };
+
+    initializeDemoVehicles();
+  }, []);
+
   return (
     <HelmetProvider>
       <Router>
@@ -31,18 +48,57 @@ const App = () => {
             <Route path="/diagnostic" element={<DiagnosticPage />} />
             <Route path="/test" element={<TestPage />} />
             <Route path="/fixes" element={<FixesTestPage />} />
-            
-            {/* Public routes with navbar/footer */}
+              {/* Public routes with navbar/footer */}
+            <Route path="/" element={
+              <>
+                <Navbar />
+                <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
+                  <Home />
+                </main>
+                <Footer />
+              </>
+            } />
+            <Route path="/inventory" element={
+              <>
+                <Navbar />
+                <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
+                  <Inventory />
+                </main>
+                <Footer />
+              </>
+            } />
+            <Route path="/inventory/:id" element={
+              <>
+                <Navbar />
+                <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
+                  <VehicleDetail />
+                </main>
+                <Footer />
+              </>
+            } />
+            <Route path="/about" element={
+              <>
+                <Navbar />
+                <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
+                  <About />
+                </main>
+                <Footer />
+              </>
+            } />
+            <Route path="/contact" element={
+              <>
+                <Navbar />
+                <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
+                  <Contact />
+                </main>
+                <Footer />
+              </>
+            } />
             <Route path="/*" element={
               <>
                 <Navbar />
                 <main className="flex-grow px-4 sm:px-6 lg:px-8 py-8">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/inventory" element={<Inventory />} />
-                    <Route path="/inventory/:id" element={<VehicleDetail />} />
-                    <Route path="/contact" element={<Contact />} />
-                  </Routes>
+                  <Home />
                 </main>
                 <Footer />
               </>

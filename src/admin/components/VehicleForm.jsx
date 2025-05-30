@@ -1,33 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
-const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) => {
-  const [formData, setFormData] = useState({
+const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) => {  const [formData, setFormData] = useState({
     make: '',
     model: '',
     year: new Date().getFullYear(),
     price: '',
     mileage: '',
     color: '',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    bodyType: 'sedan',
+    transmission: 'Automatic',
+    fuelType: 'Gasoline',
+    bodyType: 'Sedan',
     engine: '',
     vin: '',
     description: '',
     features: [],
-    condition: 'used',
-    status: 'available',
+    condition: 'Used',
+    status: 'Available',
     images: [],
     ...vehicle
   });
-
   const [errors, setErrors] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
-
+  const [videoFiles, setVideoFiles] = useState([]);
   useEffect(() => {
     if (vehicle) {
-      setFormData({ ...formData, ...vehicle });
+      setFormData(prev => ({ ...prev, ...vehicle }));
     }
   }, [vehicle]);
 
@@ -47,7 +45,6 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         : [...prev.features, feature]
     }));
   };
-
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     setImageFiles(prev => [...prev, ...files]);
@@ -65,6 +62,22 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     });
   };
 
+  const handleVideoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setVideoFiles(prev => [...prev, ...files]);
+    
+    // Create preview URLs for videos
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData(prev => ({
+          ...prev,
+          videos: [...(prev.videos || []), e.target.result]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
   const removeImage = (index) => {
     setFormData(prev => ({
       ...prev,
@@ -73,27 +86,42 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const removeVideo = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== index)
+    }));
+    setVideoFiles(prev => prev.filter((_, i) => i !== index));
+  };
   const validateForm = () => {
     const newErrors = {};
 
+    // Required fields validation
     if (!formData.make.trim()) newErrors.make = 'Make is required';
     if (!formData.model.trim()) newErrors.model = 'Model is required';
     if (!formData.year || formData.year < 1900 || formData.year > new Date().getFullYear() + 1) {
       newErrors.year = 'Valid year is required';
     }
     if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
+    if (!formData.mileage && formData.mileage !== 0) newErrors.mileage = 'Mileage is required';
     if (formData.mileage < 0) newErrors.mileage = 'Mileage cannot be negative';
+    if (!formData.color.trim()) newErrors.color = 'Color is required';
+    if (!formData.transmission.trim()) newErrors.transmission = 'Transmission is required';
+    if (!formData.fuelType.trim()) newErrors.fuelType = 'Fuel Type is required';
+    if (!formData.bodyType.trim()) newErrors.bodyType = 'Body Type is required';
+    if (!formData.condition.trim()) newErrors.condition = 'Condition is required';
+    if (!formData.engine.trim()) newErrors.engine = 'Engine is required';
     if (!formData.vin.trim()) newErrors.vin = 'VIN is required';
-    if (formData.vin.length !== 17) newErrors.vin = 'VIN must be 17 characters';
+    if (formData.vin.trim().length !== 17) newErrors.vin = 'VIN must be 17 characters';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit({ ...formData, imageFiles });
+      onSubmit({ ...formData, imageFiles, videoFiles });
     }
   };
 
@@ -184,11 +212,9 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
               min="0"
             />
             {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
-          </div>
-
-          <div>
+          </div>          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mileage
+              Mileage *
             </label>
             <input
               type="number"
@@ -201,87 +227,93 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
               min="0"
             />
             {errors.mileage && <p className="mt-1 text-sm text-red-600">{errors.mileage}</p>}
-          </div>
-
-          <div>
+          </div><div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Color
+              Color *
             </label>
             <input
               type="text"
               value={formData.color}
               onChange={(e) => handleInputChange('color', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.color ? 'border-red-300' : 'border-gray-300'
+              }`}
               placeholder="e.g., Black"
             />
+            {errors.color && <p className="mt-1 text-sm text-red-600">{errors.color}</p>}
           </div>
         </div>
 
         {/* Vehicle Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Transmission
+              Transmission *
             </label>
             <select
               value={formData.transmission}
               onChange={(e) => handleInputChange('transmission', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.transmission ? 'border-red-300' : 'border-gray-300'
+              }`}
             >
-              <option value="automatic">Automatic</option>
-              <option value="manual">Manual</option>
-              <option value="cvt">CVT</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+              <option value="CVT">CVT</option>
             </select>
-          </div>
-
-          <div>
+            {errors.transmission && <p className="mt-1 text-sm text-red-600">{errors.transmission}</p>}
+          </div>          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fuel Type
+              Fuel Type *
             </label>
             <select
               value={formData.fuelType}
               onChange={(e) => handleInputChange('fuelType', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.fuelType ? 'border-red-300' : 'border-gray-300'
+              }`}
             >
-              <option value="gasoline">Gasoline</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="electric">Electric</option>
-              <option value="diesel">Diesel</option>
+              <option value="Gasoline">Gasoline</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Electric">Electric</option>
+              <option value="Diesel">Diesel</option>
             </select>
-          </div>
-
-          <div>
+            {errors.fuelType && <p className="mt-1 text-sm text-red-600">{errors.fuelType}</p>}
+          </div><div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Body Type
+              Body Type *
             </label>
             <select
               value={formData.bodyType}
               onChange={(e) => handleInputChange('bodyType', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.bodyType ? 'border-red-300' : 'border-gray-300'
+              }`}
             >
-              <option value="sedan">Sedan</option>
-              <option value="suv">SUV</option>
-              <option value="truck">Truck</option>
-              <option value="coupe">Coupe</option>
-              <option value="hatchback">Hatchback</option>
-              <option value="convertible">Convertible</option>
-              <option value="wagon">Wagon</option>
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Truck">Truck</option>
+              <option value="Coupe">Coupe</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Convertible">Convertible</option>
+              <option value="Wagon">Wagon</option>
             </select>
-          </div>
-
-          <div>
+            {errors.bodyType && <p className="mt-1 text-sm text-red-600">{errors.bodyType}</p>}
+          </div>          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Condition
+              Condition *
             </label>
             <select
               value={formData.condition}
               onChange={(e) => handleInputChange('condition', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.condition ? 'border-red-300' : 'border-gray-300'
+              }`}
             >
-              <option value="new">New</option>
-              <option value="used">Used</option>
-              <option value="certified">Certified Pre-Owned</option>
+              <option value="New">New</option>
+              <option value="Used">Used</option>
+              <option value="Certified Pre-Owned">Certified Pre-Owned</option>
             </select>
+            {errors.condition && <p className="mt-1 text-sm text-red-600">{errors.condition}</p>}
           </div>
         </div>
 
@@ -289,15 +321,18 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Engine
+              Engine *
             </label>
             <input
               type="text"
               value={formData.engine}
               onChange={(e) => handleInputChange('engine', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g., 2.5L 4-Cylinder"
+              className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.engine ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="e.g., 2.0L 4-Cylinder"
             />
+            {errors.engine && <p className="mt-1 text-sm text-red-600">{errors.engine}</p>}
           </div>
 
           <div>
@@ -321,15 +356,18 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         {/* Description */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
+            Description *
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows="4"
-            placeholder="Detailed description of the vehicle..."
+            className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.description ? 'border-red-300' : 'border-gray-300'
+            }`}
+            rows={3}
+            placeholder="Enter a detailed description of the vehicle"
           />
+          {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
         </div>
 
         {/* Features */}
@@ -396,6 +434,54 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
                   </button>
                 </div>
               ))}
+            </div>          )}
+        </div>
+
+        {/* Video Upload */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Videos
+          </label>
+          <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <div className="mt-4">
+              <label htmlFor="videos" className="cursor-pointer">
+                <span className="mt-2 block text-sm font-medium text-gray-900">
+                  Click to upload videos
+                </span>
+                <input
+                  id="videos"
+                  type="file"
+                  multiple
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Video Previews */}
+          {formData.videos && formData.videos.length > 0 && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {formData.videos.map((video, index) => (
+                <div key={index} className="relative">
+                  <video
+                    src={video}
+                    className="w-full h-32 object-cover rounded-md border border-gray-300"
+                    controls
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVideo(index)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -404,16 +490,15 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Status
-          </label>
-          <select
+          </label><select
             value={formData.status}
             onChange={(e) => handleInputChange('status', e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="available">Available</option>
-            <option value="pending">Pending</option>
-            <option value="sold">Sold</option>
-            <option value="draft">Draft</option>
+            <option value="Available">Available</option>
+            <option value="Pending">Pending</option>
+            <option value="Sold">Sold</option>
+            <option value="Draft">Draft</option>
           </select>
         </div>
 

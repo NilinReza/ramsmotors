@@ -64,21 +64,20 @@ export const AdminAuthProvider = ({ children }) => {
       return { success: false, error: 'Login failed' };
     }
   };
-
   const logout = async () => {
     try {
       await authService.logout();
       localStorage.removeItem('authToken');
       setUser(null);
       setIsAuthenticated(false);
-      navigate('/admin/login');
+      navigate('/'); // Redirect to homepage instead of login page
     } catch (error) {
       console.error('Logout error:', error);
       // Force logout even if API call fails
       localStorage.removeItem('authToken');
       setUser(null);
       setIsAuthenticated(false);
-      navigate('/admin/login');
+      navigate('/'); // Redirect to homepage instead of login page
     }
   };
 

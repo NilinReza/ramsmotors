@@ -1,17 +1,9 @@
-import { v2 as cloudinary } from 'cloudinary'
-
-// Configure Cloudinary (will be set from environment variables)
-cloudinary.config({
-  cloud_name: process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'YOUR_CLOUD_NAME',
-  api_key: process.env.REACT_APP_CLOUDINARY_API_KEY || 'YOUR_API_KEY',
-  api_secret: process.env.REACT_APP_CLOUDINARY_API_SECRET || 'YOUR_API_SECRET',
-})
-
+// Web-compatible Cloudinary service for React frontend
 class CloudinaryService {
   constructor() {
+    this.cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'dh5pac1ru'
     this.uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET || 'ramsmotors_unsigned'
   }
-
   // Generate optimized image URL
   getOptimizedImageUrl(publicId, options = {}) {
     const defaultOptions = {
@@ -23,18 +15,16 @@ class CloudinaryService {
       ...options
     }
     
-    return cloudinary.url(publicId, defaultOptions)
+    const params = Object.entries(defaultOptions)
+      .map(([key, value]) => `${key}_${value}`)
+      .join(',')
+    
+    return `https://res.cloudinary.com/${this.cloudName}/image/upload/${params}/${publicId}`
   }
 
   // Generate thumbnail URL
   getThumbnailUrl(publicId, size = 200) {
-    return cloudinary.url(publicId, {
-      width: size,
-      height: size,
-      crop: 'fill',
-      quality: 'auto:good',
-      format: 'auto'
-    })
+    return `https://res.cloudinary.com/${this.cloudName}/image/upload/w_${size},h_${size},c_fill,q_auto:good,f_auto/${publicId}`
   }
 
   // Upload file directly from frontend (unsigned upload)
@@ -88,4 +78,5 @@ class CloudinaryService {
   }
 }
 
-export default new CloudinaryService()
+const cloudinaryService = new CloudinaryService()
+export default cloudinaryService

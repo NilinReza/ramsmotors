@@ -1,6 +1,6 @@
 // Modern Admin Login Page
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -130,9 +130,7 @@ const AdminLogin = () => {
                   'Sign in'
                 )}
               </button>
-            </div>
-
-            {/* Development Helper */}
+            </div>            {/* Development Helper */}
             {process.env.NODE_ENV === 'development' && (
               <div className="text-center">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
@@ -145,6 +143,17 @@ const AdminLogin = () => {
                 </div>
               </div>
             )}
+
+            {/* Back to Homepage Link */}
+            <div className="text-center pt-4 border-t border-gray-200">
+              <Link 
+                to="/" 
+                className="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center justify-center gap-1"
+              >
+                <span>←</span>
+                Not an admin? Go back to homepage
+              </Link>
+            </div>
           </form>
         </div>
 

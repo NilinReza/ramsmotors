@@ -111,14 +111,17 @@ const Inventory = () => {
           // Mileage filters - with safe parseInt
           if (filters.minMileage && vehicle.mileage && vehicle.mileage < parseInt(filters.minMileage || '0')) return false;
           if (filters.maxMileage && vehicle.mileage && vehicle.mileage > parseInt(filters.maxMileage || '9999999')) return false;
-          
-          // Other filters - all with null checks
+            // Other filters - all with null checks
           if (filters.transmission && vehicle.transmission && vehicle.transmission !== filters.transmission) return false;
           if (filters.fuelType && vehicle.fuelType && vehicle.fuelType !== filters.fuelType) return false;
           if (filters.bodyStyle && vehicle.bodyStyle && vehicle.bodyStyle !== filters.bodyStyle) return false;
           if (filters.color && vehicle.color && vehicle.color.toLowerCase() !== filters.color.toLowerCase()) return false;
-          if (filters.isAvailable !== null && filters.isAvailable !== undefined && 
-              vehicle.isAvailable !== undefined && vehicle.isAvailable !== filters.isAvailable) return false;
+          
+          // Available filter - check status instead of isAvailable
+          if (filters.isAvailable !== null && filters.isAvailable !== undefined) {
+            if (filters.isAvailable && vehicle.status !== 'Available') return false;
+            if (!filters.isAvailable && vehicle.status === 'Available') return false;
+          }
               
           return true; // Pass all filters
         } catch (error) {
@@ -374,8 +377,7 @@ const Inventory = () => {
               </select>
             </div>
 
-            {/* Mileage Range */}
-            <div>
+            {/* Mileage Range */}            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Min Mileage</label>
               <select
                 value={filters.minMileage}
@@ -384,12 +386,10 @@ const Inventory = () => {
               >
                 <option value="">Any Mileage</option>
                 {getMileageOptions().map(mileage => (
-                  <option key={mileage} value={mileage}>{mileage.toLocaleString()} miles</option>
+                  <option key={mileage} value={mileage}>{mileage.toLocaleString()} kilometres</option>
                 ))}
               </select>
-            </div>
-
-            <div>
+            </div>            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Mileage</label>
               <select
                 value={filters.maxMileage}
@@ -398,7 +398,7 @@ const Inventory = () => {
               >
                 <option value="">Any Mileage</option>
                 {getMileageOptions().reverse().map(mileage => (
-                  <option key={mileage} value={mileage}>{mileage.toLocaleString()} miles</option>
+                  <option key={mileage} value={mileage}>{mileage.toLocaleString()} kilometres</option>
                 ))}
               </select>
             </div>
@@ -449,7 +449,17 @@ const Inventory = () => {
             </div>
           </div>
         )}
-      </div>      {/* Vehicle Grid */}
+      </div>      {/* Refresh Inventory Button */}
+      <div className="mb-8 text-center">
+        <button
+          onClick={loadVehicles}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Refresh Inventory
+        </button>
+      </div>
+
+      {/* Vehicle Grid */}
       <VehicleGrid vehicles={filteredVehicles} />
       </div>
     </>

@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
-import { Wrapper } from "@googlemaps/react-wrapper";
 import {
   MapPin,
   Phone,
@@ -13,56 +12,142 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import GoogleReviews from "../components/GoogleReviews";
+import GetDirectionsButton from "../components/GetDirectionsButton";
+import googleMapsService from '../services/googleMapsService';
 import cars from "../data/cars";
-import { debugGoogleMapsAPI, checkAPIKeyRestrictions, suggestAPIKeyFixes } from "../utils/googleMapsDebug";
 
 // Google Maps Component
 const MapComponent = ({ center, zoom }) => {
   const ref = React.useRef(null);
   const mapRef = React.useRef(null);
   const markerRef = React.useRef(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Add resizeListener to handle window resize events
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        // Trigger resize event to fix map display
+        window.google.maps.event.trigger(mapRef.current, 'resize');
+        mapRef.current.setCenter(center);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [center]);
+
+  // Fix map initialization with page visibility changes
+  React.useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && mapRef.current) {
+        setTimeout(() => {
+          window.google.maps.event.trigger(mapRef.current, 'resize');
+          mapRef.current.setCenter(center);
+        }, 100);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [center]);
 
   React.useEffect(() => {
-    if (ref.current && window.google) {
-      if (!mapRef.current) {
-        mapRef.current = new window.google.maps.Map(ref.current, {
-          center,
-          zoom,
-          mapTypeControl: true,
-          streetViewControl: true,
-          fullscreenControl: true,
-          mapId: process.env.REACT_APP_GOOGLE_MAPS_ID || undefined, // Map ID required for advanced markers
-        });
-      } else {
-        mapRef.current.setCenter(center);
-        mapRef.current.setZoom(zoom);
-      }
+    const initMap = async () => {
+      try {
+        // Use the centralized Google Maps service
+        await googleMapsService.load();
+        setMapLoaded(true);
+        
+        // Delay map creation slightly to ensure container has proper dimensions
+        setTimeout(() => {
+          if (ref.current && window.google && window.google.maps) {
+            if (!mapRef.current) {
+              mapRef.current = new window.google.maps.Map(ref.current, {
+                center,
+                zoom,
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true,
+                disableDefaultUI: false,
+                gestureHandling: 'auto'
+              });
+              
+              // Trigger resize event after map creation to ensure proper sizing
+              window.google.maps.event.trigger(mapRef.current, 'resize');
+            } else {
+              mapRef.current.setCenter(center);
+              mapRef.current.setZoom(zoom);
+            }
 
-      // Remove old marker if it exists
-      if (markerRef.current) {
-        if (markerRef.current.setMap) {
-          markerRef.current.setMap(null);
-        } else if (markerRef.current.map) {
-          markerRef.current.map = null;
-        }
+            // Remove old marker if it exists
+            if (markerRef.current) {
+              markerRef.current.setMap(null);
+              markerRef.current = null;
+            }
+            
+            // Try to use AdvancedMarkerElement first, fall back to standard Marker if not available
+            try {
+              // Check if AdvancedMarkerElement is available
+              if (window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
+                markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+                  position: center,
+                  map: mapRef.current,
+                  title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3"
+                });
+              } else {
+                // Fall back to standard Marker
+                markerRef.current = new window.google.maps.Marker({
+                  position: center,
+                  map: mapRef.current,
+                  title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+                  animation: window.google.maps.Animation.DROP,
+                });
+              }
+            } catch (error) {
+              console.error('Google Maps marker creation error:', error);
+              // Last fallback - always use standard marker
+              try {
+                markerRef.current = new window.google.maps.Marker({
+                  position: center,
+                  map: mapRef.current,
+                  title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3"
+                });
+              } catch (e) {
+                console.error('Final fallback marker failed:', e);
+              }
+            }
+          }
+        }, 100); // Small delay to ensure container is ready
+      } catch (error) {
+        console.error('Google Maps initialization error:', error);
       }
-      // Use AdvancedMarkerElement if available, else fallback to Marker
-      if (window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
-        markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-          position: center,
-          map: mapRef.current,
-          title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
-        });
-      } else {
-        markerRef.current = new window.google.maps.Marker({
-          position: center,
-          map: mapRef.current,
-          title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
-          animation: window.google.maps.Animation.DROP,
-        });
-      }
-    }
+    };
+    
+    initMap();
   }, [center, zoom]);
+
+  // Cleanup on unmount - keep this as is, don't null mapRef
+  React.useEffect(() => {
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      // We intentionally don't null mapRef.current
+    };
+  }, []);
+
+  if (!mapLoaded) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
+          <p className="text-gray-600">Loading Google Maps...</p>
+        </div>
+      </div>
+    );
+  }
 
   return <div ref={ref} className="w-full h-full" />;
 };
@@ -91,35 +176,14 @@ const FallbackMap = () => (
 const Home = () => {
   const center = { lat: 43.751454684487484, lng: -79.26328702204334 }; // Coordinates for the Scarborough address
   const zoom = 15;
-  // 🚨 DEBUGGING: Check environment variables
-  React.useEffect(() => {
-    console.log('🔍 DEBUGGING: Environment Variables Check');
-    console.log('REACT_APP_GOOGLE_MAPS_API_KEY:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? 'PRESENT' : 'MISSING');
-    console.log('REACT_APP_GOOGLE_PLACES_API_KEY:', process.env.REACT_APP_GOOGLE_PLACES_API_KEY ? 'PRESENT' : 'MISSING');
-    console.log('REACT_APP_GOOGLE_PLACE_ID:', process.env.REACT_APP_GOOGLE_PLACE_ID ? 'PRESENT' : 'MISSING');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('All process.env keys:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP')));
-    
-    // Run Google Maps API diagnostics
-    if (process.env.REACT_APP_GOOGLE_MAPS_API_KEY) {
-      console.log('✅ Google Maps API key found, length:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY.length);
-      console.log('API key starts with:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY.substring(0, 10) + '...');
-      
-      checkAPIKeyRestrictions(process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
-      debugGoogleMapsAPI(process.env.REACT_APP_GOOGLE_MAPS_API_KEY)
-        .then(result => {
-          if (!result.success) {
-            console.error('🗺️ Google Maps API test failed:', result.error);
-            if (result.suggestions) {
-              console.log('💡 Suggestions:', result.suggestions);
-            }
-            suggestAPIKeyFixes();
-          }
-        });
-    } else {
-      console.error('❌ Google Maps API key is missing!');
-      suggestAPIKeyFixes();
-    }
+  const [mapError, setMapError] = useState(false);
+
+  // Load Google Maps API when component mounts
+  useEffect(() => {
+    googleMapsService.load().catch(error => {
+      console.error("Failed to load Google Maps:", error);
+      setMapError(true);
+    });
   }, []);
 
   const featuredCars = cars.slice(0, 3); // Show first 3 cars
@@ -353,47 +417,25 @@ const Home = () => {
                   Call Now
                 </a>
               </div>
-            </div>            {/* Map */}
-            <div className="h-96 rounded-lg overflow-hidden shadow-lg">
-              {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
-                <Wrapper
-                  apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-                  version="weekly"
-                  libraries={["places"]}
-                  render={(status) => {
-                    console.log('🗺️ Google Maps API Status:', status);
-                    console.log('🔑 API Key (first 20 chars):', process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.substring(0, 20));
-                    
-                    if (status === "LOADING") return (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
-                          <p className="text-gray-600">Loading Google Maps...</p>
-                        </div>
-                      </div>
-                    );
-                    
-                    if (status === "FAILURE") {
-                      console.error('❌ Google Maps failed to load - API key may be invalid or restricted');
-                      console.error('💡 Please check:');
-                      console.error('1. API key is valid and active');
-                      console.error('2. Maps JavaScript API is enabled');
-                      console.error('3. Billing is set up in Google Cloud Console');
-                      console.error('4. API restrictions allow localhost and your domain');
-                      return <FallbackMap />;
-                    }
-                    
-                    return null;
-                  }}
-                >
-                  <MapComponent center={center} zoom={zoom} />
-                </Wrapper>
-              ) : (
-                <>
-                  {console.log('⚠️ No Google Maps API key found - using fallback')}
-                  <FallbackMap />
-                </>
-              )}
+            </div>
+            
+            {/* Map */}
+            <div>
+              <div className="h-96 rounded-lg overflow-hidden shadow-lg">
+  {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
+    mapError ? <FallbackMap /> : <MapComponent center={center} zoom={zoom} key="home-map-component" />
+  ) : (
+    <>
+      {console.log('⚠️ No Google Maps API key found - using fallback')}
+      <FallbackMap />
+    </>
+  )}
+</div>
+              
+              {/* Get Directions Button */}
+              <div className="mt-4 flex justify-center">
+                <GetDirectionsButton variant="primary" />
+              </div>
             </div>
           </div>
         </div>

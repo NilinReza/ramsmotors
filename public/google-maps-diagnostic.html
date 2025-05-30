@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps API Diagnostic Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        #map { 
+            height: 400px; 
+            width: 100%; 
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Google Maps API Diagnostic Test</h1>
+        <p>This page tests the Google Maps API integration to identify and resolve any "fI" errors or other issues.</p>
+
+        <div class="test-section">
+            <h2>📋 Environment Check</h2>
+            <div id="env-status">Checking environment variables...</div>
+            <div class="log" id="env-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔑 API Key Validation</h2>
+            <div id="api-status">Validating API key...</div>
+            <div class="log" id="api-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🌍 Google Maps API Loading Test</h2>
+            <div id="load-status">Testing API loading...</div>
+            <button onclick="testAPILoad()" id="load-btn">Test API Loading</button>
+            <div class="log" id="load-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🗺️ Map Initialization Test</h2>
+            <div id="map-status">Ready to test map initialization...</div>
+            <button onclick="initializeMap()" id="map-btn" disabled>Initialize Map</button>
+            <button onclick="clearErrors()" id="clear-btn">Clear Error Log</button>
+            <div id="map"></div>
+            <div class="log" id="map-log"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Error Detection</h2>
+            <div id="error-status">No errors detected</div>
+            <div class="log" id="error-log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global error tracking
+        let errorLog = [];
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+
+        // Override console to capture errors
+        console.error = function(...args) {
+            errorLog.push({type: 'error', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateErrorLog();
+            originalConsoleError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            errorLog.push({type: 'warning', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateErrorLog();
+            originalConsoleWarn.apply(console, args);
+        };
+
+        // Track window errors
+        window.onerror = function(message, source, lineno, colno, error) {
+            errorLog.push({
+                type: 'error', 
+                message: `${message} at ${source}:${lineno}:${colno}`, 
+                timestamp: new Date().toISOString()
+            });
+            updateErrorLog();
+        };
+
+        function updateLog(elementId, message) {
+            const logElement = document.getElementById(elementId);
+            logElement.innerHTML += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${type}`;
+            statusElement.innerHTML = message;
+        }
+
+        function updateErrorLog() {
+            const errorLogElement = document.getElementById('error-log');
+            errorLogElement.innerHTML = errorLog.map(log => 
+                `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+            ).join('\n');
+            
+            if (errorLog.length > 0) {
+                updateStatus('error-status', `${errorLog.length} errors/warnings detected`, 'warning');
+            }
+        }
+
+        function clearErrors() {
+            errorLog = [];
+            document.getElementById('error-log').innerHTML = '';
+            updateStatus('error-status', 'Error log cleared', 'info');
+        }
+
+        // Environment check
+        function checkEnvironment() {
+            updateLog('env-log', 'Checking React environment variables...');
+            
+            // Since this is a static HTML file, we'll simulate the check
+            updateLog('env-log', 'Note: This is a standalone test page');
+            updateLog('env-log', 'In the React app, check these environment variables:');
+            updateLog('env-log', '- REACT_APP_GOOGLE_MAPS_API_KEY');
+            updateLog('env-log', '- REACT_APP_GOOGLE_PLACES_API_KEY');
+            updateLog('env-log', '- REACT_APP_GOOGLE_PLACE_ID');
+            
+            updateStatus('env-status', 'Environment check complete - see React console for actual values', 'info');
+        }
+
+        // API Key validation
+        function validateAPIKey() {
+            const apiKey = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o'; // Test key
+            updateLog('api-log', `Testing with API key: ${apiKey.substring(0, 20)}...`);
+            
+            if (apiKey.length !== 39) {
+                updateLog('api-log', '⚠️ API key length is unusual');
+                updateStatus('api-status', 'API key format warning', 'warning');
+            } else {
+                updateLog('api-log', '✅ API key format looks correct');
+                updateStatus('api-status', 'API key format validated', 'success');
+            }
+        }
+
+        // Test API loading
+        function testAPILoad() {
+            updateStatus('load-status', 'Loading Google Maps API...', 'info');
+            updateLog('load-log', 'Attempting to load Google Maps JavaScript API...');
+            
+            const apiKey = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o';
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=beta&callback=onGoogleMapsLoaded`;
+            script.async = true;
+            script.defer = true;
+            
+            script.onerror = function() {
+                updateLog('load-log', '❌ Failed to load Google Maps API');
+                updateStatus('load-status', 'API loading failed', 'error');
+            };
+            
+            document.head.appendChild(script);
+            
+            // Timeout check
+            setTimeout(() => {
+                if (!window.google) {
+                    updateLog('load-log', '⏰ Timeout: Google Maps API did not load within 10 seconds');
+                    updateStatus('load-status', 'API loading timeout', 'error');
+                }
+            }, 10000);
+        }
+
+        // Callback for when Google Maps API loads
+        window.onGoogleMapsLoaded = function() {
+            updateLog('load-log', '✅ Google Maps API loaded successfully');
+            updateStatus('load-status', 'API loaded successfully', 'success');
+            document.getElementById('map-btn').disabled = false;
+            
+            // Check for the specific objects that might cause "fI" errors
+            updateLog('load-log', 'Checking Google Maps API objects...');
+            updateLog('load-log', `google.maps: ${typeof window.google?.maps}`);
+            updateLog('load-log', `google.maps.Map: ${typeof window.google?.maps?.Map}`);
+            updateLog('load-log', `google.maps.Marker: ${typeof window.google?.maps?.Marker}`);
+            updateLog('load-log', `google.maps.marker: ${typeof window.google?.maps?.marker}`);
+            updateLog('load-log', `google.maps.marker.AdvancedMarkerElement: ${typeof window.google?.maps?.marker?.AdvancedMarkerElement}`);
+        };
+
+        // Initialize map
+        function initializeMap() {
+            updateStatus('map-status', 'Initializing map...', 'info');
+            updateLog('map-log', 'Creating map instance...');
+            
+            try {
+                if (!window.google || !window.google.maps) {
+                    throw new Error('Google Maps API not loaded');
+                }
+                
+                const mapElement = document.getElementById('map');
+                const mapOptions = {
+                    center: { lat: 43.751454684487484, lng: -79.26328702204334 }, // Rams Motors location
+                    zoom: 15,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true
+                };
+                
+                updateLog('map-log', 'Creating map with options:', JSON.stringify(mapOptions, null, 2));
+                
+                const map = new window.google.maps.Map(mapElement, mapOptions);
+                
+                updateLog('map-log', '✅ Map created successfully');
+                
+                // Add marker
+                const marker = new window.google.maps.Marker({
+                    position: mapOptions.center,
+                    map: map,
+                    title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+                    animation: window.google.maps.Animation.DROP
+                });
+                
+                updateLog('map-log', '✅ Marker added successfully');
+                updateStatus('map-status', 'Map initialized successfully', 'success');
+                
+            } catch (error) {
+                updateLog('map-log', `❌ Error initializing map: ${error.message}`);
+                updateStatus('map-status', `Map initialization failed: ${error.message}`, 'error');
+                
+                // Check specifically for "fI" related errors
+                if (error.message.includes('fI')) {
+                    updateLog('map-log', '🔍 "fI" error detected! This usually indicates:');
+                    updateLog('map-log', '  - Multiple API loads');
+                    updateLog('map-log', '  - Version conflicts');
+                    updateLog('map-log', '  - Advanced Marker API issues');
+                }
+            }
+        }
+
+        // Initialize tests on page load
+        window.onload = function() {
+            checkEnvironment();
+            validateAPIKey();
+        };
+    </script>
+</body>
+</html>

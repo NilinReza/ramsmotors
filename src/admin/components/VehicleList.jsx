@@ -30,12 +30,12 @@ const VehicleList = ({ vehicles = [], onDelete, onBulkAction, onRefresh }) => {
       return 'N/A';
     }
   };
-
   const getStatusBadge = (status) => {
     const statusClasses = {
       Available: 'bg-green-100 text-green-800',
       Sold: 'bg-red-100 text-red-800',
-      Pending: 'bg-yellow-100 text-yellow-800'
+      Pending: 'bg-yellow-100 text-yellow-800',
+      Draft: 'bg-gray-100 text-gray-800'
     };
 
     return (
