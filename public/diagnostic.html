@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Diagnostic Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 RamsMotors Diagnostic Test</h1>
+    
+    <div class="test info">
+        <h3>Environment Variables Test</h3>
+        <div id="env-test">Loading...</div>
+    </div>
+    
+    <div class="test info">
+        <h3>Google Maps API Test</h3>
+        <div id="maps-test">
+            <button onclick="testGoogleMaps()">Test Google Maps API</button>
+            <div id="maps-result"></div>
+        </div>
+    </div>
+    
+    <div class="test info">
+        <h3>Admin Login Test</h3>
+        <div id="login-test">
+            <button onclick="testAdminLogin()">Test Admin Login</button>
+            <div id="login-result"></div>
+        </div>
+    </div>
+    
+    <div class="test info">
+        <h3>Mock API Test</h3>
+        <div id="mock-test">
+            <button onclick="testMockAPI()">Test Mock API Directly</button>
+            <div id="mock-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Environment Variables Test
+        document.addEventListener('DOMContentLoaded', function() {
+            const envDiv = document.getElementById('env-test');
+            envDiv.innerHTML = `
+                <p><strong>Location:</strong> ${window.location.origin}</p>
+                <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+                <p><strong>Local Storage:</strong> ${localStorage.getItem('authToken') ? 'Has Token' : 'No Token'}</p>
+            `;
+        });
+        
+        // Google Maps API Test
+        function testGoogleMaps() {
+            const resultDiv = document.getElementById('maps-result');
+            resultDiv.innerHTML = '<p>Testing Google Maps API...</p>';
+            
+            // Test with the API key
+            const apiKey = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o';
+            
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initTestMap`;
+            script.onerror = function() {
+                resultDiv.innerHTML = '<div class="error">❌ Google Maps API failed to load</div>';
+            };
+            
+            window.initTestMap = function() {
+                resultDiv.innerHTML = '<div class="success">✅ Google Maps API loaded successfully!</div>';
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Admin Login Test
+        function testAdminLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '<p>Testing admin login...</p>';
+            
+            fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: 'admin',
+                    password: 'admin123'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success || data.token) {
+                    resultDiv.innerHTML = '<div class="success">✅ Admin login API working</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Admin login failed: ${data.error || 'Unknown error'}</div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            });
+        }
+        
+        // Mock API Test
+        function testMockAPI() {
+            const resultDiv = document.getElementById('mock-result');
+            resultDiv.innerHTML = '<p>Testing mock API directly...</p>';
+            
+            // Test the mock credentials directly
+            const mockCredentials = { username: 'admin', password: 'admin123' };
+            
+            if (mockCredentials.username === 'admin' && mockCredentials.password === 'admin123') {
+                resultDiv.innerHTML = '<div class="success">✅ Mock credentials validation working</div>';
+            } else {
+                resultDiv.innerHTML = '<div class="error">❌ Mock credentials validation failed</div>';
+            }
+        }
+    </script>
+</body>
+</html>

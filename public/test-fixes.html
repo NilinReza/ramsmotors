@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rams Motors - Test Fixes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .pending {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        iframe {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Rams Motors - Critical Issues Testing</h1>
+    
+    <div class="test-section success">
+        <h2>✅ Issue 1: Admin Login Fixed</h2>
+        <p><strong>Problem:</strong> Admin login failing with credentials admin/admin123</p>
+        <p><strong>Fix Applied:</strong> Updated API call in AdminLogin.jsx to pass credentials as object</p>
+        <p><strong>Test:</strong> <a href="http://localhost:3001/admin" target="_blank">Test Admin Login</a></p>
+        <p><strong>Credentials:</strong> Username: admin, Password: admin123</p>
+    </div>
+
+    <div class="test-section success">
+        <h2>✅ Issue 2: Inventory Page Fixed</h2>
+        <p><strong>Problem:</strong> Inventory page not displaying</p>
+        <p><strong>Fix Applied:</strong> Verified API integration and routing</p>
+        <p><strong>Test:</strong> <a href="http://localhost:3001/inventory" target="_blank">Test Inventory Page</a></p>
+    </div>
+
+    <div class="test-section pending">
+        <h2>🔍 Issue 3: Google Maps Investigation</h2>
+        <p><strong>Problem:</strong> Google Maps not showing up on Contact page</p>
+        <p><strong>Fix Applied:</strong> Added React.useMemo and debugging logs</p>
+        <p><strong>Test:</strong> <a href="http://localhost:3001/contact" target="_blank">Test Contact Page</a></p>
+        <p><strong>Debug Test:</strong> <a href="./maps-debug.html" target="_blank">Direct Google Maps Test</a></p>
+    </div>
+
+    <h2>🌐 Main Website</h2>
+    <iframe src="http://localhost:3001" title="Rams Motors Website"></iframe>
+
+    <h2>📝 Test Instructions</h2>
+    <ol>
+        <li><strong>Admin Login Test:</strong>
+            <ul>
+                <li>Click "Test Admin Login" above</li>
+                <li>Enter username: admin</li>
+                <li>Enter password: admin123</li>
+                <li>Should successfully log in without "invalid username or password" error</li>
+            </ul>
+        </li>
+        <li><strong>Inventory Page Test:</strong>
+            <ul>
+                <li>Click "Test Inventory Page" above</li>
+                <li>Page should load and display vehicle inventory</li>
+                <li>Should show vehicle cards with images, titles, and prices</li>
+            </ul>
+        </li>
+        <li><strong>Google Maps Test:</strong>
+            <ul>
+                <li>Click "Test Contact Page" above</li>
+                <li>Look for Google Maps in the contact section</li>
+                <li>Open browser console (F12) to check for JavaScript errors</li>
+                <li>Use the "Direct Google Maps Test" for API validation</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>🔧 Development Server Status</h2>
+    <p><strong>Running on:</strong> http://localhost:3001</p>
+    <p><strong>API Key:</strong> AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o</p>
+    
+    <script>
+        console.log("🔧 Rams Motors Test Page Loaded");
+        console.log("Server: http://localhost:3001");
+        console.log("Google Maps API Key configured");
+        
+        // Test if we can access the main site
+        fetch('http://localhost:3001')
+            .then(response => {
+                if (response.ok) {
+                    console.log("✅ Main website is accessible");
+                } else {
+                    console.log("❌ Main website returned error:", response.status);
+                }
+            })
+            .catch(error => {
+                console.log("❌ Cannot access main website:", error);
+            });
+    </script>
+</body>
+</html>

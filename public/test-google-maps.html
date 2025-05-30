@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps API Key Test</title>
+    <style>
+        #map { height: 400px; width: 100%; }
+        .info { padding: 20px; font-family: Arial, sans-serif; }
+        .error { background: #ffebee; color: #c62828; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🗺️ Google Maps API Key Test</h1>
+        <div id="status">Loading...</div>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        // Load API key from environment (this will be replaced by build process)
+        const API_KEY = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o';
+        
+        function initMap() {
+            console.log('🗺️ Initializing Google Maps test...');
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const map = new google.maps.Map(document.getElementById('map'), {
+                    center: { lat: 43.751454684487484, lng: -79.26328702204334 }, // Rams Motors location
+                    zoom: 15
+                });
+                
+                new google.maps.AdvancedMarkerElement({
+                    position: { lat: 43.751454684487484, lng: -79.26328702204334 },
+                    map: map,
+                    title: 'Rams Motors Test'
+                });
+                
+                statusDiv.innerHTML = '<div class="success">✅ Google Maps API key is working correctly!</div>';
+                console.log('✅ Google Maps loaded successfully');
+            } catch (error) {
+                console.error('❌ Google Maps error:', error);
+                statusDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function handleMapsError() {
+            console.error('❌ Google Maps failed to load');
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `
+                <div class="error">
+                    ❌ Google Maps API Error<br>
+                    <strong>Possible issues:</strong><br>
+                    • API key is invalid or expired<br>
+                    • API key restrictions (check domains/IPs)<br>
+                    • Maps JavaScript API not enabled<br>
+                    • Billing not enabled in Google Cloud Console<br>
+                    • Quota exceeded
+                </div>
+            `;
+        }
+        
+        // Load Google Maps API
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap`;
+        script.onerror = handleMapsError;
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

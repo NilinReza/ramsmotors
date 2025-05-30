@@ -7,8 +7,12 @@ import VehicleDetail from './pages/VehicleDetail';
 import Contact from './pages/Contact';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import DiagnosticPage from './pages/DiagnosticPage';
+import TestPage from './pages/TestPage';
+import FixesTestPage from './pages/FixesTestPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import AdminPortal from './admin';
 
 const App = () => {
   return (
@@ -16,9 +20,17 @@ const App = () => {
       <Router>
         <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 font-sans">
           <Routes>
-            {/* Admin routes without navbar/footer */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* Modern Admin Portal */}
+            <Route path="/admin/*" element={<AdminPortal />} />
+            
+            {/* Legacy Admin routes (keep for backward compatibility) */}
+            <Route path="/legacy-admin/login" element={<AdminLogin />} />
+            <Route path="/legacy-admin/dashboard" element={<AdminDashboard />} />
+            
+            {/* Diagnostic routes (development only) */}
+            <Route path="/diagnostic" element={<DiagnosticPage />} />
+            <Route path="/test" element={<TestPage />} />
+            <Route path="/fixes" element={<FixesTestPage />} />
             
             {/* Public routes with navbar/footer */}
             <Route path="/*" element={

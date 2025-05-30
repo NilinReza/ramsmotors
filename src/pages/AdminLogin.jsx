@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
+import { testAdminLogin } from '../utils/testAdminLogin';
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -16,34 +17,26 @@ const AdminLogin = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
-  const handleSubmit = async (e) => {
+  };  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
     try {
-      console.log('Attempting login with:', formData.username);
-      const response = await apiService.login(formData.username, formData.password);
-      
-      console.log('Login response:', response);
-      
-      // Ensure token is stored in localStorage
-      if (response && response.token) {
+      // Remove strict test credential check, always attempt login
+      const loginParams = {
+        username: formData.username,
+        password: formData.password
+      };
+      const response = await apiService.login(loginParams);
+      if (response && response.success && response.token) {
         localStorage.setItem('authToken', response.token);
-        console.log('Auth token stored successfully:', response.token.substring(0, 20) + '...');
-        
-        // Add a small delay to ensure token is stored before navigation
         setTimeout(() => {
-          console.log('Navigating to dashboard...');
           navigate('/admin/dashboard');
         }, 100);
       } else {
-        console.error('No token received in response');
-        setError('Authentication failed. No token received.');
+        setError(response?.error || response?.message || 'Invalid username or password');
       }
     } catch (error) {
-      console.error('Login error:', error);
       setError('Invalid username or password');
     } finally {
       setIsLoading(false);
@@ -98,9 +91,7 @@ const AdminLogin = () => {
                 onChange={handleChange}
               />
             </div>
-          </div>
-
-          <div>
+          </div>          <div>
             <button
               type="submit"
               disabled={isLoading}
@@ -109,6 +100,27 @@ const AdminLogin = () => {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
+          
+          {/* Debug Test Button - Remove in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <div>
+              <button
+                type="button"
+                onClick={async () => {
+                  console.log('🧪 Running admin login test...');
+                  const result = await testAdminLogin();
+                  if (result.success) {
+                    alert('✅ Admin login test PASSED! Check console for details.');
+                  } else {
+                    alert('❌ Admin login test FAILED: ' + result.error);
+                  }
+                }}
+                className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                🧪 Test Admin Login (Dev Only)
+              </button>
+            </div>
+          )}
           
           <div className="text-center">
             <p className="text-sm text-gray-600">

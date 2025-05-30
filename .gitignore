@@ -19,8 +19,15 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables (contains sensitive API keys)
+# CRITICAL: These files contain secrets and must NEVER be committed
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+
+# Backup environment files (also sensitive)
+.env.backup
+.env.orig
+*.env.backup

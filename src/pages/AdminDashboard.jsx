@@ -122,10 +122,29 @@ const AdminDashboard = () => {
       console.error('Error saving vehicle:', error);
     }
   };
-
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingVehicle(null);
+  };
+
+  const handleBulkAction = async (actionType, vehicleIds, newStatus = null) => {
+    try {
+      switch (actionType) {
+        case 'delete':
+          console.log(`Bulk deleted ${vehicleIds.length} vehicles`);
+          break;
+        case 'status_update':
+          console.log(`Updated ${vehicleIds.length} vehicles to ${newStatus} status`);
+          break;
+        default:
+          console.log('Unknown bulk action:', actionType);
+      }
+      // Reload vehicles after any bulk action
+      await loadVehicles();
+    } catch (error) {
+      setError(`Failed to process bulk action: ${actionType}`);
+      console.error('Bulk action error:', error);
+    }
   };
 
   if (isLoading) {
@@ -213,12 +232,12 @@ const AdminDashboard = () => {
                     Add Your First Vehicle
                   </button>
                 </div>
-              ) : (
-                <VehicleGrid
+              ) : (                <VehicleGrid
                   vehicles={vehicles}
                   onEdit={handleEditVehicle}
                   onDelete={handleDeleteVehicle}
                   isAdmin={true}
+                  onBulkAction={handleBulkAction}
                 />
               )}
             </div>

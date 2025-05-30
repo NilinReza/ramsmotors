@@ -5,16 +5,24 @@ import googleReviewsService from '../services/googleReviews';
 const GoogleReviews = ({ showTitle = true, maxReviews = 3 }) => {
   const [reviewsData, setReviewsData] = useState(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    const loadReviews = async () => {      try {
+    const loadReviews = async () => {
+      try {
         setLoading(true);
-        const data = await googleReviewsService.fetchReviews();
-        setReviewsData(data);
+        const result = await googleReviewsService.fetchReviews();
+        
+        if (result.success && result.data) {
+          setReviewsData(result.data);
+        } else {
+          // Fallback if API returns unsuccessful result
+          const fallbackResult = googleReviewsService.getFallbackReviews();
+          setReviewsData(fallbackResult.data);
+        }
       } catch (err) {
+        console.error('Error loading reviews:', err);
         // Use fallback data on error
-        const fallbackData = googleReviewsService.getFallbackReviews();
-        setReviewsData(fallbackData);
+        const fallbackResult = googleReviewsService.getFallbackReviews();
+        setReviewsData(fallbackResult.data);
       } finally {
         setLoading(false);
       }
@@ -68,27 +76,44 @@ const GoogleReviews = ({ showTitle = true, maxReviews = 3 }) => {
   if (!reviewsData) {
     return null;
   }
-
   const displayReviews = reviewsData.reviews
     .slice(0, maxReviews)
-    .map(review => googleReviewsService.formatReview(review));
+    .map((review, index) => ({
+      ...review,
+      id: review.id || `review_${index}`,
+      relativeTime: googleReviewsService.getRelativeTime(review.date)
+    }));
 
   return (
-    <div className="space-y-6">
-      {showTitle && (
+    <div className="space-y-6">      {showTitle && (
         <div className="text-center">
-          <h3 className="text-2xl font-bold text-white mb-2">Customer Reviews</h3>
-          <div className="flex justify-center items-center space-x-2">
+          <h3 className="text-2xl font-bold text-white mb-2">Customer Reviews</h3>          <div className="flex justify-center items-center space-x-2">
             <div className="flex">
-              {renderStars(Math.round(reviewsData.rating))}
+              {renderStars(Math.round(reviewsData.overall_rating || reviewsData.rating || 4.7))}
             </div>
             <span className="text-white text-lg font-semibold">
-              {reviewsData.rating.toFixed(1)}
+              {(reviewsData.overall_rating || reviewsData.rating || 4.7).toFixed(1)}
             </span>
             <span className="text-gray-400">
-              ({reviewsData.totalReviews} reviews)
+              ({reviewsData.total_reviews || reviewsData.totalReviews || 89} reviews)
             </span>
           </div>
+          {/* Review source indicator */}
+          {reviewsData.source && (
+            <div className="mt-2">
+              {reviewsData.source === 'google' ? (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                  Live Google Reviews
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
+                  Recent Customer Feedback
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 

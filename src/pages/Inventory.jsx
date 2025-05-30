@@ -26,64 +26,115 @@ const Inventory = () => {
     color: '',
     isAvailable: true // Only show available vehicles by default
   });
-
   useEffect(() => {
     loadVehicles();
   }, []);
+
   useEffect(() => {
     applyFilters();
   }, [vehicles, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadVehicles = async () => {
     try {
+      console.log('📦 Starting to load vehicles...');
       setIsLoading(true);
+      setError('');
+      
+      console.log('📡 Calling apiService.getVehicles()...');
       const response = await apiService.getVehicles();
+      
+      console.log('📬 Raw API response:', response);
+      console.log('📬 Response type:', typeof response);
+      console.log('📬 Response keys:', Object.keys(response || {}));
+      
       // Extract the vehicles array from the API response
       const vehiclesData = response.data || response;
-      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+      
+      console.log('🚗 Vehicles data:', vehiclesData);
+      console.log('🚗 Vehicles data type:', typeof vehiclesData);
+      console.log('🚗 Is array:', Array.isArray(vehiclesData));
+      console.log('🚗 Length:', vehiclesData?.length);
+      
+      const finalVehicles = Array.isArray(vehiclesData) ? vehiclesData : [];
+      
+      console.log('✅ Final vehicles to set:', finalVehicles);
+      console.log('✅ Final count:', finalVehicles.length);
+      
+      setVehicles(finalVehicles);
+      
+      console.log('✅ Vehicles loaded successfully, count:', finalVehicles.length);
+      
     } catch (error) {
+      console.error('❌ Error loading vehicles:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
       setError('Failed to load vehicles. Please try again later.');
-      console.error('Error loading vehicles:', error);
     } finally {
       setIsLoading(false);
+      console.log('📦 Load vehicles process completed');
     }
-  };
+  };  const applyFilters = () => {
+    try {
+      console.log('🔍 Applying filters to', vehicles.length, 'vehicles');
+      
+      let filtered = vehicles.filter(vehicle => {
+        try {
+          // Null check for vehicle
+          if (!vehicle) return false;
+          
+          // Search filter
+          if (filters.search) {
+            const searchTerm = filters.search.toLowerCase();
+            // Handle potentially undefined properties safely
+            const make = vehicle.make || '';
+            const model = vehicle.model || '';
+            const year = vehicle.year || '';
+            const color = vehicle.color || '';
+            const vehicleText = `${make} ${model} ${year} ${color}`.toLowerCase();
+            if (!vehicleText.includes(searchTerm)) return false;
+          }
 
-  const applyFilters = () => {
-    let filtered = vehicles.filter(vehicle => {
-      // Search filter
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        const vehicleText = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.color}`.toLowerCase();
-        if (!vehicleText.includes(searchTerm)) return false;
-      }
+          // Make filter - with null check
+          if (filters.make && vehicle.make && vehicle.make !== filters.make) return false;
 
-      // Make filter
-      if (filters.make && vehicle.make !== filters.make) return false;
+          // Model filter - with null check
+          if (filters.model && vehicle.model && vehicle.model !== filters.model) return false;
 
-      // Model filter
-      if (filters.model && vehicle.model !== filters.model) return false;
+          // Year filters - with safe parseInt
+          if (filters.minYear && vehicle.year && vehicle.year < parseInt(filters.minYear || '0')) return false;
+          if (filters.maxYear && vehicle.year && vehicle.year > parseInt(filters.maxYear || '9999')) return false;
 
-      // Year filters
-      if (filters.minYear && vehicle.year < parseInt(filters.minYear)) return false;
-      if (filters.maxYear && vehicle.year > parseInt(filters.maxYear)) return false;
+          // Price filters - with safe parseFloat
+          if (filters.minPrice && vehicle.price && vehicle.price < parseFloat(filters.minPrice || '0')) return false;
+          if (filters.maxPrice && vehicle.price && vehicle.price > parseFloat(filters.maxPrice || '999999999')) return false;
 
-      // Price filters
-      if (filters.minPrice && vehicle.price < parseFloat(filters.minPrice)) return false;
-      if (filters.maxPrice && vehicle.price > parseFloat(filters.maxPrice)) return false;
-
-      // Mileage filters
-      if (filters.minMileage && vehicle.mileage < parseInt(filters.minMileage)) return false;
-      if (filters.maxMileage && vehicle.mileage > parseInt(filters.maxMileage)) return false;      // Other filters
-      if (filters.transmission && vehicle.transmission !== filters.transmission) return false;
-      if (filters.fuelType && vehicle.fuelType !== filters.fuelType) return false;
-      if (filters.bodyStyle && vehicle.bodyStyle !== filters.bodyStyle) return false;
-      if (filters.color && vehicle.color.toLowerCase() !== filters.color.toLowerCase()) return false;
-      if (filters.isAvailable !== null && filters.isAvailable !== undefined && vehicle.isAvailable !== filters.isAvailable) return false;
-
-      return true;
-    });
-
-    setFilteredVehicles(filtered);
+          // Mileage filters - with safe parseInt
+          if (filters.minMileage && vehicle.mileage && vehicle.mileage < parseInt(filters.minMileage || '0')) return false;
+          if (filters.maxMileage && vehicle.mileage && vehicle.mileage > parseInt(filters.maxMileage || '9999999')) return false;
+          
+          // Other filters - all with null checks
+          if (filters.transmission && vehicle.transmission && vehicle.transmission !== filters.transmission) return false;
+          if (filters.fuelType && vehicle.fuelType && vehicle.fuelType !== filters.fuelType) return false;
+          if (filters.bodyStyle && vehicle.bodyStyle && vehicle.bodyStyle !== filters.bodyStyle) return false;
+          if (filters.color && vehicle.color && vehicle.color.toLowerCase() !== filters.color.toLowerCase()) return false;
+          if (filters.isAvailable !== null && filters.isAvailable !== undefined && 
+              vehicle.isAvailable !== undefined && vehicle.isAvailable !== filters.isAvailable) return false;
+              
+          return true; // Pass all filters
+        } catch (error) {
+          console.error('❌ Filter error for vehicle:', vehicle, error);
+          return false; // Exclude problematic vehicles from results
+        }
+      });
+      
+      console.log('✅ Filter applied successfully. Results:', filtered.length);
+      setFilteredVehicles(filtered);
+      
+    } catch (error) {
+      console.error('❌ Error in applyFilters:', error);
+      // Fallback to showing all vehicles if filtering fails
+      setFilteredVehicles(vehicles);
+    }
   };
 
   const handleFilterChange = (name, value) => {

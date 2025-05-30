@@ -7,25 +7,37 @@ import apiService from '../services/api';
 // Google Maps Component
 const MapComponent = ({ center, zoom }) => {
   const ref = React.useRef(null);
-  const [map, setMap] = React.useState();
+  const mapRef = React.useRef(null);
+  const markerRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (ref.current && !map && window.google) {
-      const newMap = new window.google.maps.Map(ref.current, {
-        center,
-        zoom,
-      });
+    if (ref.current && window.google) {
+      if (!mapRef.current) {
+        mapRef.current = new window.google.maps.Map(ref.current, {
+          center,
+          zoom,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+        });
+      } else {
+        mapRef.current.setCenter(center);
+        mapRef.current.setZoom(zoom);
+      }
 
-      // Add marker for dealership location
-      new window.google.maps.Marker({
+      // Remove old marker if it exists
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+      }
+      // Add marker for dealership location (revert to Marker)
+      markerRef.current = new window.google.maps.Marker({
         position: center,
-        map: newMap,
+        map: mapRef.current,
         title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+        animation: window.google.maps.Animation.DROP,
       });
-
-      setMap(newMap);
     }
-  }, [ref, map, center, zoom]);
+  }, [center, zoom]);
 
   return <div ref={ref} className="w-full h-full" />;
 };
@@ -63,9 +75,16 @@ const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-
-  const center = { lat: 43.7315, lng: -79.2665 }; // Coordinates for the Scarborough address
+  const center = React.useMemo(() => ({ lat: 43.751454684487484, lng: -79.26328702204334 }), []); // Coordinates for the Scarborough address
   const zoom = 15;
+  // Debug environment variables
+  React.useEffect(() => {
+    console.log('🔍 Contact Page Debug Info:');
+    console.log('API Key Available:', !!process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
+    console.log('API Key (first 20 chars):', process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.substring(0, 20));
+    console.log('Center coordinates:', center);
+    console.log('Zoom level:', zoom);
+  }, [center, zoom]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -226,20 +245,48 @@ ${formData.message}
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Map */}
+          </div>          {/* Map */}
           <div className="mt-8 h-64 rounded-lg overflow-hidden shadow-lg">
-            {process.env.REACT_APP_GOOGLE_MAPS_API_KEY &&
-            process.env.REACT_APP_GOOGLE_MAPS_API_KEY !== "your_google_maps_api_key_here" ? (
-              <Wrapper
-                apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-                render={() => null}
-              >
-                <MapComponent center={center} zoom={zoom} />
-              </Wrapper>
+            {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
+              <>
+                {console.log('🔑 Using Google Maps API Key:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.substring(0, 10) + '...')}
+                <Wrapper
+                  apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+                  version="weekly"
+                  libraries={["places"]}
+                  render={(status) => {
+                    console.log('🗺️ Google Maps API Status (Contact):', status);
+                    
+                    if (status === "LOADING") return (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600 mx-auto mb-2"></div>
+                          <p className="text-gray-600 text-sm">Loading Google Maps...</p>
+                        </div>
+                      </div>
+                    );
+                    
+                    if (status === "FAILURE") {
+                      console.error('❌ Google Maps failed to load on Contact page');
+                      console.error('💡 Check API key configuration in Google Cloud Console');
+                      return <FallbackMap />;
+                    }
+                    
+                    if (status === "SUCCESS") {
+                      console.log('✅ Google Maps API loaded successfully!');
+                    }
+                    
+                    return null;
+                  }}
+                >
+                  <MapComponent center={center} zoom={zoom} />
+                </Wrapper>
+              </>
             ) : (
-              <FallbackMap />
+              <>
+                {console.log('⚠️ No Google Maps API key found on Contact page - using fallback')}
+                <FallbackMap />
+              </>
             )}
           </div>
         </div>

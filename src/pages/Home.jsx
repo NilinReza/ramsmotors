@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Helmet } from 'react-helmet-async';
 import { Wrapper } from "@googlemaps/react-wrapper";
 import {
-  Star,
   MapPin,
   Phone,
   Clock,
@@ -15,30 +14,55 @@ import {
 import Navbar from "../components/Navbar";
 import GoogleReviews from "../components/GoogleReviews";
 import cars from "../data/cars";
+import { debugGoogleMapsAPI, checkAPIKeyRestrictions, suggestAPIKeyFixes } from "../utils/googleMapsDebug";
 
 // Google Maps Component
 const MapComponent = ({ center, zoom }) => {
   const ref = React.useRef(null);
-  const [map, setMap] = React.useState();
+  const mapRef = React.useRef(null);
+  const markerRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (ref.current && !map && window.google) {
-      const newMap = new window.google.maps.Map(ref.current, {
-        center,
-        zoom,
-      });
+    if (ref.current && window.google) {
+      if (!mapRef.current) {
+        mapRef.current = new window.google.maps.Map(ref.current, {
+          center,
+          zoom,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+          mapId: process.env.REACT_APP_GOOGLE_MAPS_ID || undefined, // Map ID required for advanced markers
+        });
+      } else {
+        mapRef.current.setCenter(center);
+        mapRef.current.setZoom(zoom);
+      }
 
-      // Add marker for dealership location
-      new window.google.maps.Marker({
-        position: center,
-        map: newMap,
-        title:
-          "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
-      });
-
-      setMap(newMap);
+      // Remove old marker if it exists
+      if (markerRef.current) {
+        if (markerRef.current.setMap) {
+          markerRef.current.setMap(null);
+        } else if (markerRef.current.map) {
+          markerRef.current.map = null;
+        }
+      }
+      // Use AdvancedMarkerElement if available, else fallback to Marker
+      if (window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
+        markerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+          position: center,
+          map: mapRef.current,
+          title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+        });
+      } else {
+        markerRef.current = new window.google.maps.Marker({
+          position: center,
+          map: mapRef.current,
+          title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+          animation: window.google.maps.Animation.DROP,
+        });
+      }
     }
-  }, [ref, map, center, zoom]);
+  }, [center, zoom]);
 
   return <div ref={ref} className="w-full h-full" />;
 };
@@ -65,8 +89,38 @@ const FallbackMap = () => (
 );
 
 const Home = () => {
-  const center = { lat: 43.7315, lng: -79.2665 }; // Coordinates for the Scarborough address
+  const center = { lat: 43.751454684487484, lng: -79.26328702204334 }; // Coordinates for the Scarborough address
   const zoom = 15;
+  // 🚨 DEBUGGING: Check environment variables
+  React.useEffect(() => {
+    console.log('🔍 DEBUGGING: Environment Variables Check');
+    console.log('REACT_APP_GOOGLE_MAPS_API_KEY:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? 'PRESENT' : 'MISSING');
+    console.log('REACT_APP_GOOGLE_PLACES_API_KEY:', process.env.REACT_APP_GOOGLE_PLACES_API_KEY ? 'PRESENT' : 'MISSING');
+    console.log('REACT_APP_GOOGLE_PLACE_ID:', process.env.REACT_APP_GOOGLE_PLACE_ID ? 'PRESENT' : 'MISSING');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('All process.env keys:', Object.keys(process.env).filter(key => key.startsWith('REACT_APP')));
+    
+    // Run Google Maps API diagnostics
+    if (process.env.REACT_APP_GOOGLE_MAPS_API_KEY) {
+      console.log('✅ Google Maps API key found, length:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY.length);
+      console.log('API key starts with:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY.substring(0, 10) + '...');
+      
+      checkAPIKeyRestrictions(process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
+      debugGoogleMapsAPI(process.env.REACT_APP_GOOGLE_MAPS_API_KEY)
+        .then(result => {
+          if (!result.success) {
+            console.error('🗺️ Google Maps API test failed:', result.error);
+            if (result.suggestions) {
+              console.log('💡 Suggestions:', result.suggestions);
+            }
+            suggestAPIKeyFixes();
+          }
+        });
+    } else {
+      console.error('❌ Google Maps API key is missing!');
+      suggestAPIKeyFixes();
+    }
+  }, []);
 
   const featuredCars = cars.slice(0, 3); // Show first 3 cars
 
@@ -299,21 +353,46 @@ const Home = () => {
                   Call Now
                 </a>
               </div>
-            </div>
-
-            {/* Map */}
+            </div>            {/* Map */}
             <div className="h-96 rounded-lg overflow-hidden shadow-lg">
-              {process.env.REACT_APP_GOOGLE_MAPS_API_KEY &&
-              process.env.REACT_APP_GOOGLE_MAPS_API_KEY !==
-                "your_google_maps_api_key_here" ? (
+              {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
                 <Wrapper
                   apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-                  render={() => null}
+                  version="weekly"
+                  libraries={["places"]}
+                  render={(status) => {
+                    console.log('🗺️ Google Maps API Status:', status);
+                    console.log('🔑 API Key (first 20 chars):', process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.substring(0, 20));
+                    
+                    if (status === "LOADING") return (
+                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
+                          <p className="text-gray-600">Loading Google Maps...</p>
+                        </div>
+                      </div>
+                    );
+                    
+                    if (status === "FAILURE") {
+                      console.error('❌ Google Maps failed to load - API key may be invalid or restricted');
+                      console.error('💡 Please check:');
+                      console.error('1. API key is valid and active');
+                      console.error('2. Maps JavaScript API is enabled');
+                      console.error('3. Billing is set up in Google Cloud Console');
+                      console.error('4. API restrictions allow localhost and your domain');
+                      return <FallbackMap />;
+                    }
+                    
+                    return null;
+                  }}
                 >
                   <MapComponent center={center} zoom={zoom} />
                 </Wrapper>
               ) : (
-                <FallbackMap />
+                <>
+                  {console.log('⚠️ No Google Maps API key found - using fallback')}
+                  <FallbackMap />
+                </>
               )}
             </div>
           </div>
