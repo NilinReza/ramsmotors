@@ -39,7 +39,6 @@ class SupabaseVehicleService {
       dealer_id: 'dealerId'
     }
   };
-
   // Transform frontend vehicle data to database format
   transformToDatabase(vehicleData) {
     const transformed = { ...vehicleData };
@@ -51,30 +50,96 @@ class SupabaseVehicleService {
       }
     });
     
+    // Handle status to is_available conversion
+    if ('status' in transformed) {
+      // Convert status string to is_available boolean
+      transformed.is_available = transformed.status === 'Available';
+      delete transformed.status; // Remove status field since it doesn't exist in DB
+    }
+    
     return transformed;
-  }
-  // Transform database vehicle data to frontend format
+  }  // Transform database vehicle data to frontend format
   transformFromDatabase(vehicleData) {
     if (!vehicleData) return vehicleData;
     
     const transformed = { ...vehicleData };
     
-    Object.entries(SupabaseVehicleService.FIELD_MAPPINGS.fromDatabase).forEach(([dbField, frontendField]) => {
-      if (dbField in transformed) {
-        transformed[frontendField] = transformed[dbField];
-        delete transformed[dbField];
-      }
-    });
-    
-    // Add backward compatibility fields
-    // Add 'color' field as alias for exteriorColor for components that expect it
-    if (transformed.exteriorColor && !transformed.color) {
-      transformed.color = transformed.exteriorColor;
+    // Transform timestamp fields to camelCase
+    if (transformed.created_at) {
+      transformed.createdAt = transformed.created_at;
+      delete transformed.created_at;
+    }
+    if (transformed.updated_at) {
+      transformed.updatedAt = transformed.updated_at;
+      delete transformed.updated_at;
     }
     
-    // Add 'bodyStyle' as alias for bodyType for inventory page compatibility
-    if (transformed.bodyType && !transformed.bodyStyle) {
-      transformed.bodyStyle = transformed.bodyType;
+    // Transform other metadata fields
+    if (transformed.dealer_id) {
+      transformed.dealerId = transformed.dealer_id;
+      delete transformed.dealer_id;
+    }
+    if (transformed.view_count) {
+      transformed.viewCount = transformed.view_count;
+      delete transformed.view_count;
+    }
+    if (transformed.is_featured) {
+      transformed.isFeatured = transformed.is_featured;
+      delete transformed.is_featured;
+    }
+    if (transformed.is_available) {
+      transformed.isAvailable = transformed.is_available;
+      delete transformed.is_available;
+    }
+    
+    // Add backward compatibility fields for components that expect camelCase
+    // Keep original snake_case fields for admin forms
+    if (transformed.exterior_color && !transformed.color) {
+      transformed.color = transformed.exterior_color;
+    }
+    if (transformed.body_style && !transformed.bodyStyle) {
+      transformed.bodyStyle = transformed.body_style;
+    }
+    if (transformed.fuel_type && !transformed.fuelType) {
+      transformed.fuelType = transformed.fuel_type;
+    }
+    if (transformed.engine && !transformed.engineSize) {
+      transformed.engineSize = transformed.engine;
+    }
+    
+    // Convert is_available to status for frontend compatibility
+    if ('isAvailable' in transformed) {
+      transformed.status = transformed.isAvailable ? 'Available' : 'Sold';
+    }
+    
+    // Add default condition if not present
+    if (!transformed.condition) {
+      transformed.condition = 'Used';
+    }
+      // Transform vehicle_images to images array for frontend compatibility
+    if (transformed.vehicle_images && Array.isArray(transformed.vehicle_images)) {
+      transformed.images = transformed.vehicle_images.map(img => ({
+        id: img.id,
+        url: img.url,  // Database already has 'url' field
+        publicId: img.public_id,
+        displayOrder: img.sort_order || 0,  // Database uses 'sort_order'
+        isPrimary: img.is_primary,
+        altText: img.alt_text,
+        createdAt: img.created_at
+      }));
+      delete transformed.vehicle_images;
+    }
+    
+    // Transform vehicle_videos to videos array for frontend compatibility  
+    if (transformed.vehicle_videos && Array.isArray(transformed.vehicle_videos)) {
+      transformed.videos = transformed.vehicle_videos.map(video => ({
+        id: video.id,
+        url: video.url,  // Assuming videos table has similar structure
+        publicId: video.public_id,
+        displayOrder: video.sort_order || 0,
+        createdAt: video.created_at
+      }));
+      delete transformed.vehicle_videos;
     }
     
     return transformed;
@@ -209,22 +274,57 @@ class SupabaseVehicleService {
         data: null
       };
     }
-  }
-  // Create a new vehicle
+  }  // Create a new vehicle
   async createVehicle(vehicleData, images = [], videos = []) {
     try {
       console.log('🚗 Supabase: Creating vehicle:', vehicleData);
+      console.log('📸 Images received:', images.length);
+      console.log('🎥 Videos received:', videos.length);
       
       // Transform frontend field names to database field names
-      const transformedData = this.transformToDatabase(vehicleData);
+      const transformedData = this.transformToDatabase(vehicleData);      console.log('🔄 Transformed data:', transformedData);
+        // Define supported database columns (based on your actual schema)
+      const supportedColumns = [
+        'make', 'model', 'year', 'price', 'mileage', 'transmission', 'engine', 
+        'vin', 'description', 'features', 'body_style', 'fuel_type', 
+        'exterior_color', 'interior_color', 'dealer_id', 'created_at', 'updated_at', 
+        'is_available', 'is_featured'
+      ];
+      
+      // Filter out unsupported fields (like 'condition')
+      const filteredData = {};
+      Object.keys(transformedData).forEach(key => {
+        if (supportedColumns.includes(key)) {
+          filteredData[key] = transformedData[key];
+        } else {
+          console.warn(`⚠️ Skipping unsupported field: ${key} = ${transformedData[key]}`);
+        }
+      });
       
       // Prepare vehicle data for insertion
       const vehicleToInsert = {
-        ...transformedData,
+        ...filteredData,
         dealer_id: this.currentDealerId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+      
+      // Clean up undefined/null values that might cause database issues
+      Object.keys(vehicleToInsert).forEach(key => {
+        if (vehicleToInsert[key] === undefined || vehicleToInsert[key] === null || vehicleToInsert[key] === '') {
+          delete vehicleToInsert[key];
+        }
+      });
+      
+      // Ensure required fields have default values
+      if (!vehicleToInsert.is_available) {
+        vehicleToInsert.is_available = true;
+      }
+      if (!vehicleToInsert.is_featured) {
+        vehicleToInsert.is_featured = false;
+      }
+      
+      console.log('📋 Final vehicle data for insert:', vehicleToInsert);
 
       // Insert vehicle first
       const { data: vehicle, error: vehicleError } = await supabase
@@ -235,6 +335,8 @@ class SupabaseVehicleService {
 
       if (vehicleError) {
         console.error('❌ Supabase vehicle insert error:', vehicleError);
+        console.error('❌ Error details:', JSON.stringify(vehicleError, null, 2));
+        console.error('❌ Data that caused error:', JSON.stringify(vehicleToInsert, null, 2));
         throw vehicleError;
       }
 
@@ -347,8 +449,7 @@ class SupabaseVehicleService {
         error: error.message
       };
     }
-  }
-  // Update an existing vehicle
+  }  // Update an existing vehicle
   async updateVehicle(id, vehicleData, newImages = [], newVideos = []) {
     try {
       console.log('🔄 Supabase: Updating vehicle:', id);
@@ -356,11 +457,29 @@ class SupabaseVehicleService {
       // Transform frontend field names to database field names
       const transformedData = this.transformToDatabase(vehicleData);
       
+      // Define supported database columns (same as createVehicle)
+      const supportedColumns = [
+        'make', 'model', 'year', 'price', 'mileage', 'transmission', 'engine', 
+        'vin', 'description', 'features', 'body_style', 'fuel_type', 
+        'exterior_color', 'interior_color', 'dealer_id', 'created_at', 'updated_at', 
+        'is_available', 'is_featured'
+      ];
+      
+      // Filter out unsupported fields (like 'condition')
+      const filteredData = {};
+      Object.keys(transformedData).forEach(key => {
+        if (supportedColumns.includes(key)) {
+          filteredData[key] = transformedData[key];
+        } else {
+          console.warn(`⚠️ Skipping unsupported field in update: ${key} = ${transformedData[key]}`);
+        }
+      });
+      
       // Update vehicle data
       const { data: vehicle, error: vehicleError } = await supabase
         .from('vehicles')
         .update({
-          ...transformedData,
+          ...filteredData,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)

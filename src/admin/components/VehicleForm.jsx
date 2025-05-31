@@ -7,27 +7,78 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     year: new Date().getFullYear(),
     price: '',
     mileage: '',
-    color: '',
+    exterior_color: '',
     transmission: 'Automatic',
-    fuelType: 'Gasoline',
-    bodyType: 'Sedan',
+    fuel_type: 'Gasoline',
+    body_style: 'Sedan',
     engine: '',
     vin: '',
     description: '',
     features: [],
     condition: 'Used',
-    status: 'Available',
-    images: [],
-    ...vehicle
+    status: 'Available'
   });
   const [errors, setErrors] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
-  useEffect(() => {
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [videoPreviews, setVideoPreviews] = useState([]);
+    useEffect(() => {
     if (vehicle) {
-      setFormData(prev => ({ ...prev, ...vehicle }));
+      console.log('🔄 VehicleForm: Received vehicle data:', vehicle);
+      
+      // Map vehicle data to form fields, ensuring proper field names
+      const mappedVehicle = {
+        make: vehicle.make || '',
+        model: vehicle.model || '',
+        year: vehicle.year || new Date().getFullYear(),
+        price: vehicle.price || '',
+        mileage: vehicle.mileage || '',
+        // Handle color field - check multiple possible field names
+        exterior_color: vehicle.exterior_color || vehicle.exteriorColor || vehicle.color || '',
+        transmission: vehicle.transmission || 'Automatic',
+        fuel_type: vehicle.fuel_type || vehicle.fuelType || 'Gasoline',
+        body_style: vehicle.body_style || vehicle.bodyStyle || vehicle.bodyType || 'Sedan',
+        engine: vehicle.engine || vehicle.engineSize || '',
+        vin: vehicle.vin || '',
+        description: vehicle.description || '',
+        features: Array.isArray(vehicle.features) ? vehicle.features : [],
+        condition: vehicle.condition || 'Used',
+        status: vehicle.status || 'Available',
+        // Preserve any additional fields that might be needed
+        id: vehicle.id,
+        images: vehicle.images || [],
+        videos: vehicle.videos || []
+      };
+      
+      console.log('✅ VehicleForm: Mapped vehicle data:', mappedVehicle);
+      
+      setFormData(prev => ({ ...prev, ...mappedVehicle }));
+      
+      // Handle existing images
+      if (vehicle.images && vehicle.images.length > 0) {
+        const existingImagePreviews = vehicle.images.map(img => ({
+          url: img.url,
+          publicId: img.publicId || img.public_id,
+          isExisting: true
+        }));
+        setImagePreviews(existingImagePreviews);
+        console.log('🖼️ VehicleForm: Set image previews:', existingImagePreviews);
+      }
+      
+      // Handle existing videos
+      if (vehicle.videos && vehicle.videos.length > 0) {
+        const existingVideoPreviews = vehicle.videos.map(video => ({
+          url: video.url,
+          publicId: video.publicId || video.public_id,
+          isExisting: true
+        }));
+        setVideoPreviews(existingVideoPreviews);
+        console.log('🎥 VehicleForm: Set video previews:', existingVideoPreviews);      }
     }
   }, [vehicle]);
+
+  // Available features list
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -44,8 +95,7 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         ? prev.features.filter(f => f !== feature)
         : [...prev.features, feature]
     }));
-  };
-  const handleImageUpload = (e) => {
+  };  const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     setImageFiles(prev => [...prev, ...files]);
     
@@ -53,15 +103,11 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, e.target.result]
-        }));
+        setImagePreviews(prev => [...prev, e.target.result]);
       };
       reader.readAsDataURL(file);
     });
   };
-
   const handleVideoUpload = (e) => {
     const files = Array.from(e.target.files);
     setVideoFiles(prev => [...prev, ...files]);
@@ -70,27 +116,16 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData(prev => ({
-          ...prev,
-          videos: [...(prev.videos || []), e.target.result]
-        }));
+        setVideoPreviews(prev => [...prev, e.target.result]);
       };
       reader.readAsDataURL(file);
     });
-  };
-  const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
+  };  const removeImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
-
   const removeVideo = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      videos: prev.videos.filter((_, i) => i !== index)
-    }));
+    setVideoPreviews(prev => prev.filter((_, i) => i !== index));
     setVideoFiles(prev => prev.filter((_, i) => i !== index));
   };
   const validateForm = () => {
@@ -105,10 +140,10 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
     if (!formData.mileage && formData.mileage !== 0) newErrors.mileage = 'Mileage is required';
     if (formData.mileage < 0) newErrors.mileage = 'Mileage cannot be negative';
-    if (!formData.color.trim()) newErrors.color = 'Color is required';
+    if (!formData.exterior_color.trim()) newErrors.exterior_color = 'Color is required';
     if (!formData.transmission.trim()) newErrors.transmission = 'Transmission is required';
-    if (!formData.fuelType.trim()) newErrors.fuelType = 'Fuel Type is required';
-    if (!formData.bodyType.trim()) newErrors.bodyType = 'Body Type is required';
+    if (!formData.fuel_type.trim()) newErrors.fuel_type = 'Fuel Type is required';
+    if (!formData.body_style.trim()) newErrors.body_style = 'Body Type is required';
     if (!formData.condition.trim()) newErrors.condition = 'Condition is required';
     if (!formData.engine.trim()) newErrors.engine = 'Engine is required';
     if (!formData.vin.trim()) newErrors.vin = 'VIN is required';
@@ -230,17 +265,16 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
           </div><div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Color *
-            </label>
-            <input
+            </label>            <input
               type="text"
-              value={formData.color}
-              onChange={(e) => handleInputChange('color', e.target.value)}
+              value={formData.exterior_color}
+              onChange={(e) => handleInputChange('exterior_color', e.target.value)}
               className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.color ? 'border-red-300' : 'border-gray-300'
+                errors.exterior_color ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="e.g., Black"
             />
-            {errors.color && <p className="mt-1 text-sm text-red-600">{errors.color}</p>}
+            {errors.exterior_color && <p className="mt-1 text-sm text-red-600">{errors.exterior_color}</p>}
           </div>
         </div>
 
@@ -264,12 +298,11 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
           </div>          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Fuel Type *
-            </label>
-            <select
-              value={formData.fuelType}
-              onChange={(e) => handleInputChange('fuelType', e.target.value)}
+            </label>            <select
+              value={formData.fuel_type}
+              onChange={(e) => handleInputChange('fuel_type', e.target.value)}
               className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.fuelType ? 'border-red-300' : 'border-gray-300'
+                errors.fuel_type ? 'border-red-300' : 'border-gray-300'
               }`}
             >
               <option value="Gasoline">Gasoline</option>
@@ -277,16 +310,15 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
               <option value="Electric">Electric</option>
               <option value="Diesel">Diesel</option>
             </select>
-            {errors.fuelType && <p className="mt-1 text-sm text-red-600">{errors.fuelType}</p>}
+            {errors.fuel_type && <p className="mt-1 text-sm text-red-600">{errors.fuel_type}</p>}
           </div><div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Body Type *
-            </label>
-            <select
-              value={formData.bodyType}
-              onChange={(e) => handleInputChange('bodyType', e.target.value)}
+            </label>            <select
+              value={formData.body_style}
+              onChange={(e) => handleInputChange('body_style', e.target.value)}
               className={`w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.bodyType ? 'border-red-300' : 'border-gray-300'
+                errors.body_style ? 'border-red-300' : 'border-gray-300'
               }`}
             >
               <option value="Sedan">Sedan</option>
@@ -297,7 +329,7 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
               <option value="Convertible">Convertible</option>
               <option value="Wagon">Wagon</option>
             </select>
-            {errors.bodyType && <p className="mt-1 text-sm text-red-600">{errors.bodyType}</p>}
+            {errors.body_style && <p className="mt-1 text-sm text-red-600">{errors.body_style}</p>}
           </div>          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Condition *
@@ -413,12 +445,10 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
                 />
               </label>
             </div>
-          </div>
-
-          {/* Image Previews */}
-          {formData.images.length > 0 && (
+          </div>          {/* Image Previews */}
+          {imagePreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.images.map((image, index) => (
+              {imagePreviews.map((image, index) => (
                 <div key={index} className="relative">
                   <img
                     src={image}
@@ -461,12 +491,10 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
                 />
               </label>
             </div>
-          </div>
-
-          {/* Video Previews */}
-          {formData.videos && formData.videos.length > 0 && (
+          </div>          {/* Video Previews */}
+          {videoPreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.videos.map((video, index) => (
+              {videoPreviews.map((video, index) => (
                 <div key={index} className="relative">
                   <video
                     src={video}
