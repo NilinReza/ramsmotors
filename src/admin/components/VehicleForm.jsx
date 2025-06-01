@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
-const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) => {  const [formData, setFormData] = useState({
+const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) => {
+  const [formData, setFormData] = useState({
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -23,10 +24,13 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
   const [videoFiles, setVideoFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [videoPreviews, setVideoPreviews] = useState([]);
-    useEffect(() => {
+  
+  // Add state to track deleted existing images
+  const [deletedImageIds, setDeletedImageIds] = useState([]);
+  const [deletedVideoIds, setDeletedVideoIds] = useState([]);
+  
+  useEffect(() => {
     if (vehicle) {
-      console.log('🔄 VehicleForm: Received vehicle data:', vehicle);
-      
       // Map vehicle data to form fields, ensuring proper field names
       const mappedVehicle = {
         make: vehicle.make || '',
@@ -48,10 +52,7 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         // Preserve any additional fields that might be needed
         id: vehicle.id,
         images: vehicle.images || [],
-        videos: vehicle.videos || []
-      };
-      
-      console.log('✅ VehicleForm: Mapped vehicle data:', mappedVehicle);
+        videos: vehicle.videos || []      };
       
       setFormData(prev => ({ ...prev, ...mappedVehicle }));
       
@@ -60,13 +61,10 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
         const existingImagePreviews = vehicle.images.map(img => ({
           url: img.url,
           publicId: img.publicId || img.public_id,
-          isExisting: true
-        }));
+          isExisting: true        }));
         setImagePreviews(existingImagePreviews);
-        console.log('🖼️ VehicleForm: Set image previews:', existingImagePreviews);
       }
-      
-      // Handle existing videos
+        // Handle existing videos
       if (vehicle.videos && vehicle.videos.length > 0) {
         const existingVideoPreviews = vehicle.videos.map(video => ({
           url: video.url,
@@ -74,7 +72,7 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
           isExisting: true
         }));
         setVideoPreviews(existingVideoPreviews);
-        console.log('🎥 VehicleForm: Set video previews:', existingVideoPreviews);      }
+      }
     }
   }, [vehicle]);
 
@@ -123,10 +121,20 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
   };  const removeImage = (index) => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setImageFiles(prev => prev.filter((_, i) => i !== index));
+    
+    // Track deleted existing images by publicId
+    if (imagePreviews[index].isExisting) {
+      setDeletedImageIds(prev => [...prev, imagePreviews[index].publicId]);
+    }
   };
   const removeVideo = (index) => {
     setVideoPreviews(prev => prev.filter((_, i) => i !== index));
     setVideoFiles(prev => prev.filter((_, i) => i !== index));
+    
+    // Track deleted existing videos by publicId
+    if (videoPreviews[index].isExisting) {
+      setDeletedVideoIds(prev => [...prev, videoPreviews[index].publicId]);
+    }
   };
   const validateForm = () => {
     const newErrors = {};
@@ -156,7 +164,7 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit({ ...formData, imageFiles, videoFiles });
+      onSubmit({ ...formData, imageFiles, videoFiles, deletedImageIds, deletedVideoIds });
     }
   };
 
@@ -170,6 +178,12 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
     'Android Auto', 'Blind Spot Monitoring', 'Lane Departure Warning',
     'Automatic Emergency Braking', 'Adaptive Cruise Control', 'Parking Sensors'
   ];
+  useEffect(() => {
+  }, [formData]);
+
+  // Debug: Track imagePreviews changes  
+  useEffect(() => {
+  }, [imagePreviews]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -449,9 +463,8 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
           {imagePreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
               {imagePreviews.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={image}
+                <div key={index} className="relative">                  <img
+                    src={typeof image === 'string' ? image : image.url}
                     alt={`Preview ${index + 1}`}
                     className="w-full h-24 object-cover rounded-md border border-gray-300"
                   />
@@ -495,9 +508,8 @@ const VehicleForm = ({ vehicle = null, onSubmit, onCancel, isLoading = false }) 
           {videoPreviews.length > 0 && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               {videoPreviews.map((video, index) => (
-                <div key={index} className="relative">
-                  <video
-                    src={video}
+                <div key={index} className="relative">                  <video
+                    src={typeof video === 'string' ? video : video.url}
                     className="w-full h-32 object-cover rounded-md border border-gray-300"
                     controls
                   />

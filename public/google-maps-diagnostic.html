@@ -189,10 +189,9 @@
         function testAPILoad() {
             updateStatus('load-status', 'Loading Google Maps API...', 'info');
             updateLog('load-log', 'Attempting to load Google Maps JavaScript API...');
-            
-            const apiKey = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o';
+              const apiKey = 'AIzaSyBx2Yi32rUDYDe4kGIJ4PahBtTlKqKJ1-o';
             const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=beta&callback=onGoogleMapsLoaded`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly&callback=onGoogleMapsLoaded`;
             script.async = true;
             script.defer = true;
             

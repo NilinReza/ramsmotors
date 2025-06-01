@@ -19,13 +19,11 @@ class GoogleReviewsService {
     };
   }
 
+  
   // Fetch reviews from Google Places API via Netlify proxy
   async fetchReviews() {
     try {
-      console.log('🔄 Fetching Google Reviews...');
-      
       if (!this.apiKey || !this.placeId) {
-        console.error('❌ Missing Google Places API key or Place ID');
         return this.getFallbackReviews();
       }
 
@@ -43,11 +41,7 @@ class GoogleReviewsService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-
-      if (data.status === 'OK' && data.result) {
-        console.log('✅ Successfully fetched Google Reviews');
-        
+      const data = await response.json();      if (data.status === 'OK' && data.result) {
         return {
           success: true,
           data: {
@@ -62,15 +56,12 @@ class GoogleReviewsService {
       }
 
     } catch (error) {
-      console.error('❌ Error fetching Google Reviews:', error);
-      return this.getFallbackReviews();
+      console.error('❌ Error fetching Google Reviews:', error);      return this.getFallbackReviews();
     }
   }
 
   // Fallback reviews when API is unavailable
   getFallbackReviews() {
-    console.log('📝 Using fallback reviews data');
-    
     const fallbackReviews = [
       {
         author_name: "Sarah Johnson",

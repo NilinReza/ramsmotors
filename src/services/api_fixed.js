@@ -3,7 +3,7 @@ import supabaseApiService from './supabaseApi';
 import mockApiService from './mockApi';
 
 // 🧪 TESTING MODE - Set to true to use mock data for UI testing
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 class ApiService {
   constructor() {

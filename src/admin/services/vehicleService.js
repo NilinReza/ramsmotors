@@ -50,12 +50,11 @@ class VehicleService {
       throw error;
     }
   }
-
-  async updateVehicle(id, vehicleData, newImages = [], newVideos = []) {
+  async updateVehicle(id, vehicleData, newImages = [], newVideos = [], deletedImageIds = [], deletedVideoIds = []) {
     await this.initialize();
     
     try {
-      const result = await supabaseVehicleService.updateVehicle(id, vehicleData, newImages, newVideos);
+      const result = await supabaseVehicleService.updateVehicle(id, vehicleData, newImages, newVideos, deletedImageIds, deletedVideoIds);
       return result.data;
     } catch (error) {
       console.error('Admin service - updateVehicle error:', error);

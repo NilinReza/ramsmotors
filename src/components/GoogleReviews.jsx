@@ -12,18 +12,14 @@ const GoogleReviews = () => {
     let isMounted = true;
     mountedRef.current = true;
 
-    const fetchGoogleReviews = async () => {
-      // Prevent multiple simultaneous fetches
+    const fetchGoogleReviews = async () => {      // Prevent multiple simultaneous fetches
       if (fetchingRef.current) {
-        console.log('🚫 Google Reviews fetch already in progress, skipping...');
         return;
       }
 
       try {
         fetchingRef.current = true;
         setError(null);
-
-        console.log('🔍 Fetching Google Reviews...');
 
         // Wait a bit to ensure everything is initialized
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -37,15 +33,12 @@ const GoogleReviews = () => {
 
         // Use the retry version to fetch reviews
         const result = await supabaseApiService.getGoogleReviewsWithRetry();
-        
-        if (!isMounted || !mountedRef.current) {
-          console.log('Component unmounted, aborting review fetch');
+          if (!isMounted || !mountedRef.current) {
           return;
         }
 
         if (result.success) {
           setReviews(result.data.reviews || []);
-          console.log('✅ Reviews loaded successfully:', result.data.reviews?.length || 0);
         } else {
           console.error('Failed to fetch reviews:', result.error);
           setError(result.error);

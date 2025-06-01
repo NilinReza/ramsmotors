@@ -202,6 +202,10 @@ const VehicleGrid = ({ vehicles, onEdit, onDelete, isAdmin = false, onBulkAction
                   src={vehicle.images[0].url}
                   alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                   className="w-full h-full object-cover"
+                  onError={e => {
+                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                    e.target.onerror = null;
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">

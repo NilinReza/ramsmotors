@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Display Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .vehicle { border: 1px solid #ccc; margin: 10px; padding: 15px; }
+        .image { width: 200px; height: 150px; object-fit: cover; margin: 5px; border: 1px solid #ddd; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Image Display Test</h1>
+    <div id="status">Loading...</div>
+    <div id="vehicles"></div>
+
+    <script>
+        async function testImageDisplay() {
+            const statusDiv = document.getElementById('status');
+            const vehiclesDiv = document.getElementById('vehicles');
+            
+            try {
+                statusDiv.innerHTML = '<span class="info">📡 Fetching vehicles from API...</span>';
+                
+                // Test the actual API endpoint
+                const response = await fetch('/api/vehicles');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const vehicles = await response.json();
+                
+                statusDiv.innerHTML = `<span class="success">✅ Found ${vehicles.length} vehicles</span>`;
+                
+                if (vehicles.length === 0) {
+                    vehiclesDiv.innerHTML = '<p class="error">No vehicles found</p>';
+                    return;
+                }
+                
+                // Display first few vehicles
+                const vehiclesToShow = vehicles.slice(0, 3);
+                
+                vehiclesDiv.innerHTML = vehiclesToShow.map(vehicle => {
+                    const hasImages = vehicle.images && vehicle.images.length > 0;
+                    const imageCount = hasImages ? vehicle.images.length : 0;
+                    
+                    return `
+                        <div class="vehicle">
+                            <h3>${vehicle.year} ${vehicle.make} ${vehicle.model}</h3>
+                            <p><strong>ID:</strong> ${vehicle.id}</p>
+                            <p><strong>Price:</strong> $${vehicle.price?.toLocaleString() || 'N/A'}</p>
+                            <p><strong>Images:</strong> ${imageCount} found</p>
+                            
+                            ${hasImages ? `
+                                <div>
+                                    <h4>Images:</h4>
+                                    ${vehicle.images.map((img, index) => `
+                                        <div style="margin: 10px 0;">
+                                            <p><strong>Image ${index + 1}:</strong></p>
+                                            <p>URL: ${img.url || 'No URL'}</p>
+                                            <p>PublicID: ${img.publicId || 'No PublicID'}</p>
+                                            ${img.url ? `
+                                                <img src="${img.url}" class="image" 
+                                                     onerror="this.style.border='2px solid red'; this.alt='❌ Failed to load';"
+                                                     onload="this.style.border='2px solid green';"
+                                                     alt="Vehicle image ${index + 1}">
+                                            ` : '<p class="error">❌ No image URL</p>'}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : '<p class="error">❌ No images array found</p>'}
+                            
+                            <details>
+                                <summary>Raw Vehicle Data</summary>
+                                <pre>${JSON.stringify(vehicle, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+                vehiclesDiv.innerHTML = `<p class="error">Failed to load vehicles: ${error.message}</p>`;
+                console.error('Image test error:', error);
+            }
+        }
+        
+        // Run test when page loads
+        testImageDisplay();
+    </script>
+</body>
+</html>

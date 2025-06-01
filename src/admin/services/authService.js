@@ -1,11 +1,13 @@
 // Modern Authentication Service - Supabase Ready
 import mockApiService from '../../services/mockApi';
+import { supabase } from '../../config/supabase';
 
-const USE_MOCK_DATA = true; // Toggle for Supabase migration
+const USE_MOCK_DATA = false; // Toggle for Supabase migration
 
 class AuthService {
   constructor() {
     this.isInitialized = false;
+    this.supabase = supabase;
   }
 
   // Initialize Supabase client (when ready)
@@ -13,13 +15,12 @@ class AuthService {
     if (this.isInitialized) return;
     
     if (!USE_MOCK_DATA) {
-      // TODO: Initialize Supabase client
-      // this.supabase = createClient(url, key);
+      // Supabase client is already initialized in constructor
+      console.log('🔧 Supabase auth service initialized');
     }
     
     this.isInitialized = true;
   }
-
   async login(credentials) {
     await this.initialize();
     
@@ -27,28 +28,33 @@ class AuthService {
       return await mockApiService.login(credentials);
     }
     
-    // Supabase auth implementation
-    /*
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password
-    });
-    
-    if (error) {
+    try {
+      console.log('🔐 Attempting Supabase login for:', credentials.email || credentials.username);
+      
+      // Supabase auth implementation
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email: credentials.email || credentials.username,
+        password: credentials.password
+      });
+      
+      if (error) {
+        console.error('❌ Supabase auth error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      console.log('✅ Supabase login successful');
+      
+      return {
+        success: true,
+        token: data.session.access_token,
+        user: data.user,
+        refreshToken: data.session.refresh_token
+      };
+    } catch (error) {
+      console.error('❌ Login error:', error);
       return { success: false, error: error.message };
     }
-    
-    return {
-      success: true,
-      token: data.session.access_token,
-      user: data.user,
-      refreshToken: data.session.refresh_token
-    };
-    */
-    
-    throw new Error('Supabase not configured');
   }
-
   async logout() {
     await this.initialize();
     
@@ -56,21 +62,22 @@ class AuthService {
       return await mockApiService.logout();
     }
     
-    // Supabase auth implementation
-    /*
-    const { error } = await this.supabase.auth.signOut();
-    
-    if (error) {
-      console.error('Logout error:', error);
+    try {
+      // Supabase auth implementation
+      const { error } = await this.supabase.auth.signOut();
+      
+      if (error) {
+        console.error('❌ Logout error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      console.log('✅ Logout successful');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Logout error:', error);
       return { success: false, error: error.message };
     }
-    
-    return { success: true };
-    */
-    
-    return { success: true };
   }
-
   async validateToken(token) {
     await this.initialize();
     
@@ -79,19 +86,15 @@ class AuthService {
       return token && token.startsWith('mock-token-');
     }
     
-    // Supabase token validation
-    /*
     try {
+      // Supabase token validation
       const { data: { user }, error } = await this.supabase.auth.getUser(token);
       return !error && user;
     } catch (error) {
+      console.error('❌ Token validation error:', error);
       return false;
     }
-    */
-    
-    return false;
   }
-
   async getCurrentUser() {
     await this.initialize();
     
@@ -109,22 +112,26 @@ class AuthService {
       return null;
     }
     
-    // Supabase user retrieval
-    /*
-    const { data: { user }, error } = await this.supabase.auth.getUser();
-    
-    if (error || !user) {
+    try {
+      // Supabase user retrieval
+      const { data: { user }, error } = await this.supabase.auth.getUser();
+      
+      if (error || !user) {
+        console.log('❌ No current user or error:', error?.message);
+        return null;
+      }
+      
+      console.log('✅ Current user retrieved:', user.email);
+      
+      return {
+        id: user.id,
+        email: user.email,
+        ...user.user_metadata
+      };
+    } catch (error) {
+      console.error('❌ Get current user error:', error);
       return null;
     }
-    
-    return {
-      id: user.id,
-      email: user.email,
-      ...user.user_metadata
-    };
-    */
-    
-    return null;
   }
 
   async refreshToken() {

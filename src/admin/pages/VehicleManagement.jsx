@@ -6,6 +6,7 @@ import VehicleList from '../components/VehicleList';
 import VehicleForm from '../components/VehicleForm';
 import VehicleFilters from '../components/VehicleFilters';
 import VehicleImport from '../components/VehicleImport';
+import dataSync from '../../utils/dataSync';
 
 const VehicleManagement = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -20,9 +21,29 @@ const VehicleManagement = () => {
     minPrice: '',
     maxPrice: ''
   });
-  const navigate = useNavigate();
-  useEffect(() => {
+  const navigate = useNavigate();  useEffect(() => {
     loadVehicles();
+  }, []);
+  // Set up data sync listener for real-time updates
+  useEffect(() => {
+    const unsubscribe = dataSync.onVehicleChange((eventDetail) => {
+      // Always refresh the vehicle list when any change occurs
+      switch (eventDetail.action) {
+        case 'create':
+        case 'update':
+        case 'delete':
+        case 'bulk_delete':
+        case 'refresh':
+          loadVehicles();
+          break;
+        default:
+          // Unknown action type
+          break;
+      }
+    });    // Cleanup listener on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const loadVehicles = async () => {
@@ -167,20 +188,32 @@ const VehicleManagement = () => {
       console.error('Bulk action failed:', error);
       setError('Bulk action failed. Please try again.');
     }
-  };
-  const handleFormSubmit = async (vehicleData) => {
+  };  const handleFormSubmit = async (vehicleData) => {
     try {
-      await vehicleService.createVehicle(vehicleData);
+      // Extract image and video files from vehicleData
+      const { imageFiles = [], videoFiles = [], ...cleanVehicleData } = vehicleData;
+      
+      // Call createVehicle with separated parameters
+      await vehicleService.createVehicle(cleanVehicleData, imageFiles, videoFiles);
       navigate('/admin/vehicles');
       await loadVehicles();
     } catch (error) {
       console.error('Form submission error:', error);
       setError('Failed to save vehicle. Please try again.');
     }
-  };
-  const handleEditFormSubmit = async (vehicleId, vehicleData) => {
+  };  const handleEditFormSubmit = async (vehicleId, vehicleData) => {
     try {
-      await vehicleService.updateVehicle(vehicleId, vehicleData);
+      // Extract image and video files and deletion IDs from vehicleData
+      const { 
+        imageFiles = [], 
+        videoFiles = [], 
+        deletedImageIds = [], 
+        deletedVideoIds = [], 
+        ...cleanVehicleData 
+      } = vehicleData;
+      
+      // Call updateVehicle with separated parameters including deletion IDs
+      await vehicleService.updateVehicle(vehicleId, cleanVehicleData, imageFiles, videoFiles, deletedImageIds, deletedVideoIds);
       navigate('/admin/vehicles');
       await loadVehicles();
     } catch (error) {
@@ -196,13 +229,11 @@ const VehicleManagement = () => {
   const EditVehicleForm = () => {
     const { id } = useParams();
     const [vehicleData, setVehicleData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
+    const [isLoading, setIsLoading] = useState(true);    useEffect(() => {
       const loadVehicle = async () => {
         try {
-          const response = await vehicleService.getVehicle(id);
-          setVehicleData(response.data);
+          const vehicleData = await vehicleService.getVehicle(id);
+        setVehicleData(vehicleData);
         } catch (error) {
           console.error('Failed to load vehicle:', error);
           setError('Failed to load vehicle data.');
@@ -354,11 +385,9 @@ const VehicleManagement = () => {
               </Link>
               <h1 className="text-3xl font-bold text-gray-900 mt-2">Import Vehicles</h1>
             </div>
-            <VehicleImport
-              onImport={async (data, settings) => {
+            <VehicleImport              onImport={async (data, settings) => {
                 // Handle the import process
                 try {
-                  console.log('Importing vehicles:', data, settings);
                   // Process imported vehicles here
                   await loadVehicles();
                   navigate('/admin/vehicles');

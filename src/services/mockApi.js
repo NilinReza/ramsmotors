@@ -1,6 +1,8 @@
 // Mock API Service for Testing UI Without Backend
 // This simulates the Supabase API responses for immediate testing
 
+import dataSync from '../utils/dataSync.js';
+
 // Load vehicles from localStorage or use default mock data
 const loadVehiclesFromStorage = () => {
   try {
@@ -24,8 +26,7 @@ const saveVehiclesToStorage = (vehicles) => {
 };
 
 // Default mock vehicle data
-const defaultMockVehicles = [
-  {
+const defaultMockVehicles = [  {
     id: '1',
     vin: 'JH4TB2H26CC000001',
     make: 'Honda',
@@ -37,7 +38,9 @@ const defaultMockVehicles = [
     fuelType: 'Gasoline',
     bodyStyle: 'Sedan',
     color: 'Silver Metallic',
-    engineSize: '2.0L 4-Cylinder',    status: 'Available',
+    engineSize: '2.0L 4-Cylinder',
+    condition: 'Used',
+    status: 'Available',
     description: 'Excellent condition Honda Accord with low mileage.',
     features: ['Air Conditioning', 'Bluetooth', 'Backup Camera', 'Cruise Control'],
     images: [
@@ -47,8 +50,7 @@ const defaultMockVehicles = [
       }    ],
     videos: [],
     createdAt: new Date().toISOString()
-  },
-  {
+  },  {
     id: '2',
     vin: 'JH4TB2H26CC000002',
     make: 'Toyota',
@@ -60,7 +62,9 @@ const defaultMockVehicles = [
     fuelType: 'Gasoline',
     bodyStyle: 'Sedan',
     color: 'Pearl White',
-    engineSize: '2.5L 4-Cylinder',    status: 'Available',
+    engineSize: '2.5L 4-Cylinder',
+    condition: 'Used',
+    status: 'Available',
     description: 'Reliable Toyota Camry in great condition.',
     features: ['Air Conditioning', 'Bluetooth', 'Navigation System', 'Heated Seats'],
     images: [
@@ -83,7 +87,9 @@ const defaultMockVehicles = [
     fuelType: 'Gasoline',
     bodyStyle: 'Truck',
     color: 'Shadow Black',
-    engineSize: '3.5L V6 Twin Turbo',    status: 'Pending',
+    engineSize: '3.5L V6 Twin Turbo',
+    condition: 'Used',
+    status: 'Pending',
     description: 'Powerful Ford F-150 truck with excellent towing capacity.',
     features: ['Air Conditioning', 'Bluetooth', 'Backup Camera', 'Remote Start', 'Keyless Entry'],
     images: [
@@ -101,13 +107,14 @@ const defaultMockVehicles = [
     make: 'BMW',
     model: 'X5',
     year: 2022,
-    price: 52900,
-    mileage: 18000,
+    price: 52900,    mileage: 18000,
     transmission: 'Automatic',
     fuelType: 'Gasoline',
     bodyStyle: 'SUV',
     color: 'Alpine White',
-    engineSize: '3.0L I6 Twin Turbo',    status: 'Sold',
+    engineSize: '3.0L I6 Twin Turbo',
+    condition: 'Used',
+    status: 'Sold',
     description: 'Luxury BMW X5 with premium features.',
     features: ['Air Conditioning', 'Bluetooth', 'Navigation System', 'Leather Seats', 'Sunroof', 'Heated Seats'],images: [
       {
@@ -121,13 +128,66 @@ const defaultMockVehicles = [
 
 // Initialize vehicles from localStorage or use defaults
 let mockVehicles = loadVehiclesFromStorage();
-if (mockVehicles.length === 0) {
+
+// 🔄 FORCE REFRESH: Check if stored vehicles have the new complete structure
+const needsRefresh = mockVehicles.length === 0 || 
+  !mockVehicles[0]?.condition || // Missing condition field 
+  !mockVehicles[0]?.engineSize;  // Missing engineSize field
+
+if (needsRefresh) {
+  console.log('🔄 Mock API: Refreshing vehicles with complete structure');
   mockVehicles = [...defaultMockVehicles];
   saveVehiclesToStorage(mockVehicles);
+  console.log('✅ Mock API: Vehicles refreshed with complete data');
 }
 
 // Simulate API delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Transform vehicle data from camelCase (mock storage) to snake_case (expected by VehicleForm)
+const transformVehicleForResponse = (vehicle) => {
+  if (!vehicle) return vehicle;
+  
+  console.log('🔄 Mock API: Transforming vehicle for response');
+  console.log('🔍 Input vehicle:', vehicle);
+  
+  const transformed = {
+    ...vehicle,
+    // Transform camelCase to snake_case for VehicleForm compatibility
+    exterior_color: vehicle.color || vehicle.exterior_color,
+    fuel_type: vehicle.fuelType || vehicle.fuel_type,
+    body_style: vehicle.bodyStyle || vehicle.body_style,
+    
+    // Map engine field (mock data uses 'engineSize', VehicleForm expects 'engine')
+    engine: vehicle.engineSize || vehicle.engine,
+    
+    // Ensure all required fields exist with fallbacks
+    make: vehicle.make || '',
+    model: vehicle.model || '',
+    year: vehicle.year || new Date().getFullYear(),
+    price: vehicle.price || '',
+    mileage: vehicle.mileage || '',
+    transmission: vehicle.transmission || 'Automatic',
+    vin: vehicle.vin || '',
+    description: vehicle.description || '',
+    features: vehicle.features || [],
+    condition: vehicle.condition || 'Used',
+    status: vehicle.status || 'Available',
+    images: vehicle.images || [],
+    videos: vehicle.videos || [],
+    createdAt: vehicle.createdAt || new Date().toISOString()
+  };
+  
+  console.log('✅ Transformed vehicle:', transformed);
+  console.log('🔍 Key fields check:');
+  console.log('  make:', transformed.make);
+  console.log('  model:', transformed.model);
+  console.log('  exterior_color:', transformed.exterior_color);
+  console.log('  engine:', transformed.engine);
+  console.log('  price:', transformed.price);
+  
+  return transformed;
+};
 
 const mockApiService = {
   // Authentication methods
@@ -224,11 +284,14 @@ const mockApiService = {
       } catch (filterError) {
         console.error('🧪 Mock API: Error applying filters:', filterError);
       }
+        console.log('🧪 Mock API: Returning filtered vehicles:', vehicles.length);
       
-      console.log('🧪 Mock API: Returning filtered vehicles:', vehicles.length);
+      // Transform all vehicles for VehicleForm compatibility
+      const transformedVehicles = vehicles.map(transformVehicleForResponse);
+      
       return {
-        data: vehicles,
-        count: vehicles.length
+        data: transformedVehicles,
+        count: transformedVehicles.length
       };
     } catch (error) {
       console.error('🧪 Mock API: Critical error in getVehicles:', error);
@@ -240,15 +303,16 @@ const mockApiService = {
       };
     }
   },
-
   async getVehicle(id) {
     await delay(500);
     const vehicle = mockVehicles.find(v => v.id === id);
     if (!vehicle) {
       throw new Error('Vehicle not found');
     }
-    return { data: vehicle };
-  },  async createVehicle(vehicleData) {
+    // Transform field names for VehicleForm compatibility
+    const transformedVehicle = transformVehicleForResponse(vehicle);
+    return { data: transformedVehicle };
+  },async createVehicle(vehicleData) {
     await delay(1000);
     
     // Process images if they exist
@@ -285,29 +349,42 @@ const mockApiService = {
     console.log('🧪 Mock API: Created vehicle with images:', newVehicle.images.length, 'videos:', newVehicle.videos.length);
     mockVehicles.push(newVehicle);
     saveVehiclesToStorage(mockVehicles);
+    
+    // Emit data sync event for real-time updates
+    dataSync.vehicleCreated(newVehicle);
+    
     return { data: newVehicle };
   },
-
   async updateVehicle(id, updates) {
     await delay(800);
     const index = mockVehicles.findIndex(v => v.id === id);
     if (index === -1) {
       throw new Error('Vehicle not found');
-    }    mockVehicles[index] = { ...mockVehicles[index], ...updates };
+    }
+    
+    mockVehicles[index] = { ...mockVehicles[index], ...updates };
     saveVehiclesToStorage(mockVehicles);
+    
+    // Emit data sync event for real-time updates
+    dataSync.vehicleUpdated(mockVehicles[index]);
+    
     return { data: mockVehicles[index] };
   },
-
   async deleteVehicle(id) {
     await delay(600);
     const index = mockVehicles.findIndex(v => v.id === id);
     if (index === -1) {
       throw new Error('Vehicle not found');
-    }    const deletedVehicle = mockVehicles.splice(index, 1)[0];
+    }
+    
+    const deletedVehicle = mockVehicles.splice(index, 1)[0];
     saveVehiclesToStorage(mockVehicles);
+    
+    // Emit data sync event for real-time updates
+    dataSync.vehicleDeleted(deletedVehicle);
+    
     return { data: deletedVehicle };
   },
-
   // Bulk operations
   async bulkDeleteVehicles(vehicleIds) {
     await delay(1500);
@@ -316,8 +393,13 @@ const mockApiService = {
       const index = mockVehicles.findIndex(v => v.id === id);
       if (index !== -1) {
         deletedVehicles.push(mockVehicles.splice(index, 1)[0]);
-      }    });
+      }
+    });
     saveVehiclesToStorage(mockVehicles);
+    
+    // Emit data sync event for real-time updates
+    dataSync.vehiclesBulkDeleted(deletedVehicles);
+    
     return { 
       data: deletedVehicles, 
       count: deletedVehicles.length 

@@ -73,26 +73,38 @@ const AdminDashboard = () => {
     };
     initializeDashboard();
   }, [checkAuth, loadVehicles]);
-
   const handleLogout = async () => {
     try {
       await apiService.logout();
-      navigate('/admin/login');
+      navigate('/'); // Redirect to homepage instead of login
     } catch (error) {
       console.error('Logout error:', error);
       localStorage.removeItem('authToken');
-      navigate('/admin/login');
+      navigate('/'); // Redirect to homepage instead of login
     }
   };
 
   const handleAddVehicle = () => {
     setEditingVehicle(null);
     setShowForm(true);
-  };
-
-  const handleEditVehicle = (vehicle) => {
-    setEditingVehicle(vehicle);
-    setShowForm(true);
+  };  const handleEditVehicle = async (vehicle) => {    setIsLoading(true);
+    setError("");
+    try {
+      // Always fetch the latest vehicle data by ID
+      const result = await apiService.getVehicle(vehicle.id || vehicle.vin);      
+      if (result && result.success && result.data) {
+        setEditingVehicle(result.data);
+        setShowForm(true);
+      } else {
+        console.error('❌ EditVehicle: Failed to load vehicle details:', result);
+        setError("Failed to load vehicle details for editing.");
+      }
+    } catch (err) {
+      console.error("❌ EditVehicle: Edit fetch error:", err);
+      setError("Error loading vehicle details for editing.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
@@ -199,8 +211,8 @@ const AdminDashboard = () => {
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
                 {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
-              </h3>
-              <VehicleForm
+              </h3>              <VehicleForm
+                key={editingVehicle?.id || 'new'}
                 vehicle={editingVehicle}
                 onSubmit={handleFormSubmit}
                 onCancel={handleFormCancel}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import apiService from '../services/api';
 import VehicleGrid from '../components/VehicleGrid';
+import dataSync from '../utils/dataSync';
 
 const Inventory = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -25,14 +26,41 @@ const Inventory = () => {
     bodyStyle: '',
     color: '',
     isAvailable: true // Only show available vehicles by default
-  });
-  useEffect(() => {
+  });  useEffect(() => {
     loadVehicles();
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [vehicles, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Set up data sync listener for real-time updates
+  useEffect(() => {
+    console.log('🔄 Inventory: Setting up data sync listener');
+    
+    const unsubscribe = dataSync.onVehicleChange((eventDetail) => {
+      console.log('🔄 Inventory: Received vehicle change event:', eventDetail.action);
+      
+      switch (eventDetail.action) {
+        case 'create':
+        case 'update':
+        case 'delete':
+        case 'bulk_delete':
+        case 'refresh':
+          console.log('🔄 Inventory: Refreshing vehicle data due to change');
+          loadVehicles();
+          break;
+        default:
+          console.log('🔄 Inventory: Unknown action:', eventDetail.action);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      console.log('🔄 Inventory: Cleaning up data sync listener');
+      unsubscribe();
+    };
+  }, []);
 
   const loadVehicles = async () => {
     try {

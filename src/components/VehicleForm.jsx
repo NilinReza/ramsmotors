@@ -20,9 +20,10 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
   const [selectedVideos, setSelectedVideos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-
   useEffect(() => {
+    console.log('🔍 VehicleForm: useEffect triggered with vehicle:', vehicle);
     if (vehicle) {
+      console.log('✅ VehicleForm: Setting form data with vehicle:', vehicle);
       setFormData({
         make: vehicle.make || '',
         model: vehicle.model || '',
@@ -37,6 +38,9 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
         description: vehicle.description || '',
         status: vehicle.status || 'Available'
       });
+      console.log('✅ VehicleForm: Form data set');
+    } else {
+      console.log('⚠️ VehicleForm: No vehicle data provided, using defaults');
     }
   }, [vehicle]);
 

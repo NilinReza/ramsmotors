@@ -1,82 +1,155 @@
-// Web-compatible Cloudinary service for React frontend
-class CloudinaryService {
-  constructor() {
-    this.cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME || 'dh5pac1ru'
-    this.uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET || 'ramsmotors_unsigned'
-  }
-  // Generate optimized image URL
-  getOptimizedImageUrl(publicId, options = {}) {
-    const defaultOptions = {
-      width: 800,
-      height: 600,
-      crop: 'fill',
-      quality: 'auto:best',
-      format: 'auto',
-      ...options
+// Updated Cloudinary Service for Rams Motors
+// Handles both image and video uploads with proper dealer and vehicle organization
+
+const uploadFile = async (file, dealerId = null, vehicleId = null, resourceType = "image") => {
+  try {
+    console.log("☁️ Starting Cloudinary upload:", {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      resourceType,
+      dealerId,
+      vehicleId
+    });
+
+    // Validate file
+    if (!file || !file.name) {
+      throw new Error("Invalid file provided");
     }
+
+    // Check file size (limit to 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      throw new Error(
+        `File size too large. Maximum size is ${maxSize / 1024 / 1024}MB`
+      );
+    }
+
+    // Validate environment variables
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+
+    console.log("🔑 Cloudinary config check:", {
+      hasCloudName: !!cloudName,
+      hasUploadPreset: !!uploadPreset,
+      cloudName: cloudName ? `${cloudName.substring(0, 5)}...` : "MISSING",
+      uploadPreset: uploadPreset
+        ? `${uploadPreset.substring(0, 5)}...`
+        : "MISSING",
+    });
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error(
+        "Missing Cloudinary configuration. Please check REACT_APP_CLOUDINARY_CLOUD_NAME and REACT_APP_CLOUDINARY_UPLOAD_PRESET environment variables."
+      );
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
     
-    const params = Object.entries(defaultOptions)
-      .map(([key, value]) => `${key}_${value}`)
-      .join(',')
-    
-    return `https://res.cloudinary.com/${this.cloudName}/image/upload/${params}/${publicId}`
-  }
-
-  // Generate thumbnail URL
-  getThumbnailUrl(publicId, size = 200) {
-    return `https://res.cloudinary.com/${this.cloudName}/image/upload/w_${size},h_${size},c_fill,q_auto:good,f_auto/${publicId}`
-  }
-
-  // Upload file directly from frontend (unsigned upload)
-  async uploadFile(file, dealerId, vehicleId, fileType = 'image') {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', this.uploadPreset)
-    formData.append('folder', `dealership_${dealerId}/vehicle_${vehicleId}`)
-    formData.append('resource_type', fileType === 'video' ? 'video' : 'image')
-
-    const endpoint = `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUDINARY_CLOUD_NAME}/${fileType === 'video' ? 'video' : 'image'}/upload`
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      return {
-        success: true,
-        publicId: result.public_id,
-        url: result.secure_url,
-        format: result.format,
-        bytes: result.bytes
-      }
-    } catch (error) {
-      console.error('Cloudinary upload error:', error)
-      return {
-        success: false,
-        error: error.message
-      }
+    // Add folder organization if dealer and vehicle IDs are provided
+    if (dealerId && vehicleId) {
+      formData.append("folder", `${dealerId}/vehicles/${vehicleId}/${resourceType}s`);
+    } else if (dealerId) {
+      formData.append("folder", `${dealerId}/${resourceType}s`);
     }
-  }
-
-  // Delete file from Cloudinary
-  async deleteFile(publicId, resourceType = 'image') {
-    try {
-      // Note: For delete operations, you'll need server-side API or signed uploads
-      // For now, we'll just mark as deleted in our database
-      console.warn('Delete operation requires server-side implementation for security')
-      return { success: true }
-    } catch (error) {
-      console.error('Cloudinary delete error:', error)
-      return { success: false, error: error.message }
+      // Add resource type specific settings
+    if (resourceType === "image") {
+      formData.append("resource_type", "image");
+      // Note: transformations not allowed with unsigned uploads
+      // Image optimization will be handled by Cloudinary's auto settings in upload preset
+    } else if (resourceType === "video") {
+      formData.append("resource_type", "video");
+      // Note: transformations not allowed with unsigned uploads
+      // Video optimization will be handled by Cloudinary's upload preset
     }
-  }
-}
 
-const cloudinaryService = new CloudinaryService()
-export default cloudinaryService
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+    console.log("🌐 Uploading to:", uploadUrl);
+
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    console.log(
+      "📡 Upload response status:",
+      response.status,
+      response.statusText
+    );
+
+    if (!response.ok) {
+      // Get error details from response
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ Cloudinary error details:", errorData);
+
+        if (errorData.error && errorData.error.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch (parseError) {
+        // If we can't parse the error response, use the response text
+        try {
+          const errorText = await response.text();
+          console.error("❌ Cloudinary error text:", errorText);
+          errorMessage = errorText || errorMessage;
+        } catch (textError) {
+          console.error("❌ Could not parse error response");
+        }
+      }
+
+      throw new Error(`Upload failed: ${errorMessage}`);
+    }
+
+    const result = await response.json();
+    console.log("✅ Upload successful:", {
+      publicId: result.public_id,
+      secureUrl: result.secure_url,
+      format: result.format,
+      resourceType: result.resource_type,
+    });
+
+    return {
+      success: true,
+      url: result.secure_url,
+      publicId: result.public_id,
+      resourceType: result.resource_type,
+    };
+  } catch (error) {
+    console.error("❌ Cloudinary upload error:", error);
+    throw error;
+  }
+};
+
+const deleteFile = async (publicId, resourceType = "image") => {
+  try {
+    console.log("🗑️ Attempting to delete Cloudinary file:", publicId);
+
+    // For now, just log the deletion attempt
+    // Actual deletion would require server-side implementation with API secret
+    console.log("⚠️ File deletion requires server-side implementation");
+
+    return {
+      success: true,
+      message: "File marked for deletion",
+    };
+  } catch (error) {
+    console.error("❌ Cloudinary delete error:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+const cloudinaryService = {
+  uploadFile,
+  deleteFile,
+};
+
+export default cloudinaryService;

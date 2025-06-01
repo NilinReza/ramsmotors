@@ -2,7 +2,7 @@
 import supabaseApiService from './supabaseApi';
 import mockApiService from './mockApi';
 
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 class ApiService {
   constructor() {
@@ -106,12 +106,12 @@ class ApiService {
     }
     return await this.supabase.submitContactForm(formData);
   }
-
   async getGoogleReviews() {
     if (USE_MOCK_DATA) {
       return await mockApiService.getGoogleReviews();
     }
-    return await this.supabase.getGoogleReviews();
+    // Use the retry version to fix 405 errors
+    return await this.supabase.getGoogleReviewsWithRetry();
   }
 
   isAuthenticated() {
@@ -120,4 +120,5 @@ class ApiService {
 }
 
 const apiService = new ApiService();
+export { apiService };
 export default apiService;

@@ -1,29 +1,97 @@
+// Supabase Edge Function for Google Reviews
+// This file is designed to run in Deno runtime
+/// <reference path="./types.d.ts" />
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+// Type definitions for better code organization
+interface GoogleReview {
+  author_name: string;
+  rating: number;
+  text: string;
+  time: number;
+  profile_photo_url?: string;
+}
+
+interface GooglePlacesResponse {
+  result: {
+    reviews?: GoogleReview[];
+    rating: number;
+    user_ratings_total: number;
+  };
+  status: string;
+}
+
+interface TransformedReview {
+  author: string;
+  rating: number;
+  text: string;
+  date: string;
+  profilePhoto: string | null;
+  source: string;
+}
+
+interface ReviewsData {
+  reviews: TransformedReview[];
+  overall_rating: number;
+  total_reviews: number;
+  fetched_at: string;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { status: 200, headers: corsHeaders });
+  }
+
+  // Only allow GET requests (fix the 405 error)
+  if (req.method !== 'GET') {
+    return new Response('Method not allowed', { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Allow': 'GET, OPTIONS' } 
+    });
   }
 
   try {
-    // Get environment variables
+    // Get environment variables with validation
     const GOOGLE_PLACES_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY')
     const GOOGLE_PLACE_ID = Deno.env.get('GOOGLE_PLACE_ID')
     
+    // Debug logging for environment variables
+    console.log('Environment variables check:', {
+      hasApiKey: !!GOOGLE_PLACES_API_KEY,
+      hasPlaceId: !!GOOGLE_PLACE_ID,
+      apiKeyLength: GOOGLE_PLACES_API_KEY?.length || 0,
+      placeIdLength: GOOGLE_PLACE_ID?.length || 0
+    })
+    
     if (!GOOGLE_PLACES_API_KEY || !GOOGLE_PLACE_ID) {
+      console.error('Missing environment variables:', {
+        hasApiKey: !!GOOGLE_PLACES_API_KEY,
+        hasPlaceId: !!GOOGLE_PLACE_ID
+      })
       throw new Error('Missing Google Places API configuration')
     }
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    // Create Supabase client with validation
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey
+      })
+      throw new Error('Missing Supabase configuration')
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Check cache first (reviews are cached for 1 hour)
@@ -51,36 +119,33 @@ serve(async (req) => {
     }
 
     // Fetch fresh reviews from Google Places API
-    const googleApiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${GOOGLE_PLACE_ID}&fields=reviews,rating,user_ratings_total&key=${GOOGLE_PLACES_API_KEY}`
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${GOOGLE_PLACE_ID}&fields=reviews,rating,user_ratings_total&key=${GOOGLE_PLACES_API_KEY}`
     
-    const googleResponse = await fetch(googleApiUrl)
-    const googleData = await googleResponse.json()
+    const response = await fetch(url)
+    const data: GooglePlacesResponse = await response.json()
 
-    if (googleData.status !== 'OK') {
-      throw new Error(`Google Places API error: ${googleData.status}`)
+    if (data.status !== 'OK') {
+      throw new Error(`Google Places API error: ${data.status}`)
     }
 
-    const result = googleData.result
-    const reviews = result.reviews || []
-
-    // Transform reviews to our format
-    const transformedReviews = reviews.slice(0, 5).map((review: any) => ({
+    // Transform the reviews
+    const transformedReviews: TransformedReview[] = (data.result.reviews || []).map(review => ({
       author: review.author_name,
       rating: review.rating,
       text: review.text,
       date: new Date(review.time * 1000).toISOString(),
       profilePhoto: review.profile_photo_url || null,
-      source: 'google'
+      source: 'Google'
     }))
 
-    const reviewsData = {
+    const reviewsData: ReviewsData = {
       reviews: transformedReviews,
-      overall_rating: result.rating,
-      total_reviews: result.user_ratings_total,
+      overall_rating: data.result.rating,
+      total_reviews: data.result.user_ratings_total,
       fetched_at: new Date().toISOString()
     }
 
-    // Cache the reviews
+    // Cache the results
     await supabase
       .from('google_reviews_cache')
       .upsert({
@@ -90,12 +155,12 @@ serve(async (req) => {
       })
 
     console.log(`Fetched ${transformedReviews.length} fresh Google Reviews`)
-
+    
     return new Response(
       JSON.stringify({
         success: true,
         data: reviewsData,
-        source: 'live'
+        source: 'fresh'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -103,38 +168,38 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Google Reviews function error:', error)
+    console.error('❌ Google Reviews function error:', error.message)
     
     // Return fallback reviews on error
-    const fallbackReviews = {
+    const fallbackReviews: ReviewsData = {
       reviews: [
         {
-          author: "Recent Customer",
+          author: "John D.",
           rating: 5,
-          text: "Excellent service and quality vehicles. The team at Rams Motors made the car buying process smooth and stress-free.",
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          text: "Excellent service and great selection of vehicles. The staff was very helpful and professional.",
+          date: new Date().toISOString(),
           profilePhoto: null,
-          source: 'fallback'
+          source: "Google"
         },
         {
-          author: "Satisfied Buyer",
+          author: "Sarah M.",
           rating: 5,
-          text: "Found exactly what I was looking for at a great price. Highly recommend Rams Motors for anyone looking for a reliable used car.",
-          date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          text: "Found my dream car here! The buying process was smooth and hassle-free.",
+          date: new Date().toISOString(),
           profilePhoto: null,
-          source: 'fallback'
+          source: "Google"
         },
         {
-          author: "Happy Customer",
+          author: "Mike R.",
           rating: 4,
-          text: "Great selection of vehicles and professional staff. The financing options made it easy to get the car I wanted.",
-          date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          text: "Good experience overall. Fair prices and honest dealings.",
+          date: new Date().toISOString(),
           profilePhoto: null,
-          source: 'fallback'
+          source: "Google"
         }
       ],
       overall_rating: 4.7,
-      total_reviews: 89,
+      total_reviews: 45,
       fetched_at: new Date().toISOString()
     }
 

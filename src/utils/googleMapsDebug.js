@@ -10,8 +10,7 @@ export const debugGoogleMapsAPI = async (apiKey) => {
     return { success: false, error: 'No API key' };
   }
   
-  
-  // Test if the API key works with a simple request
+    // Test if the API key works with a simple request
   try {
     const testUrl = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`;
     console.log('🌐 Testing API endpoint:', testUrl.replace(apiKey, 'API_KEY_HIDDEN'));

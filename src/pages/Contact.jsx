@@ -1,38 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import googleMapsService from '../services/googleMapsService';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import Navbar from "../components/Navbar";
+import googleMapsService from "../services/googleMapsService";
 
 const Contact = () => {
+  // Memoize coordinates to prevent useEffect re-runs
+  const coordinates = useMemo(() => ({ 
+    lat: 43.751454684487484, 
+    lng: -79.26328702204334 
+  }), []); // Rams Motors location
+
   const [formState, setFormState] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
   });
   const [formStatus, setFormStatus] = useState({
     isSubmitting: false,
     isSubmitted: false,
-    error: null,
-  });
-  
-  const [map, setMap] = useState(null);
+    error: null,  });
   const [mapError, setMapError] = useState(false);
   const mapContainerRef = useRef(null);
-  
-  const coordinates = { lat: 43.751454684487484, lng: -79.26328702204334 }; // Rams Motors location
-
   useEffect(() => {
+    let mapInstance = null;
+    let listeners = [];
+
     const initMap = async () => {
       try {
+        console.log('[Contact] Initializing Google Maps...');
+        
         // Use the centralized Google Maps service
         const google = await googleMapsService.load();
-        
+
         if (mapContainerRef.current && google.maps) {
+          console.log('[Contact] Creating map instance...');
+          
           // Create the map instance
-          const mapInstance = new google.maps.Map(mapContainerRef.current, {
+          mapInstance = new google.maps.Map(mapContainerRef.current, {
             center: coordinates,
             zoom: 15,
             mapTypeControl: true,
@@ -40,44 +46,82 @@ const Contact = () => {
             fullscreenControl: true,
           });
 
+          // Store map event listeners for cleanup
+          const clickListener = mapInstance.addListener('click', () => {
+            console.log('[Contact] Map clicked');
+          });
+          listeners.push(clickListener);
+
           // Add marker
           try {
             // Try to use AdvancedMarkerElement first if available
-            if (google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+            if (
+              google.maps.marker &&
+              google.maps.marker.AdvancedMarkerElement
+            ) {
               new google.maps.marker.AdvancedMarkerElement({
                 position: coordinates,
                 map: mapInstance,
-                title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3"
+                title:
+                  "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
               });
             } else {
               // Fall back to standard Marker
               new google.maps.Marker({
                 position: coordinates,
                 map: mapInstance,
-                title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+                title:
+                  "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
                 animation: google.maps.Animation.DROP,
               });
             }
           } catch (markerError) {
-            console.error('Error creating marker:', markerError);
+            console.error("Error creating marker:", markerError);
             // Final fallback - use standard marker
             new google.maps.Marker({
               position: coordinates,
               map: mapInstance,
-              title: "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3"
-            });
-          }
+              title:
+                "Rams Motors - 2655 Lawrence Ave E unit m12, Scarborough, ON M1P 2S3",
+            });          }
 
-          setMap(mapInstance);
+          console.log('[Contact] Map initialized successfully');
         }
       } catch (error) {
-        console.error('Error initializing map:', error);
+        console.error("Error initializing map:", error);
         setMapError(true);
       }
     };
 
     initMap();
-  }, []);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      try {
+        console.log('[Contact] Cleaning up map resources...');
+        
+        // Remove event listeners
+        listeners.forEach(listener => {
+          if (listener && listener.remove) {
+            listener.remove();
+          }
+        });
+        listeners = [];
+
+        // Clear map instance
+        if (mapInstance) {
+          // Clear any map-specific listeners
+          if (window.google && window.google.maps && window.google.maps.event) {
+            window.google.maps.event.clearInstanceListeners(mapInstance);
+          }
+          
+          mapInstance = null;        }
+
+        console.log('[Contact] Map cleanup completed');
+      } catch (cleanupError) {
+        console.error('[Contact] Error during map cleanup:', cleanupError);
+      }    };
+  }, [coordinates]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -93,24 +137,24 @@ const Contact = () => {
 
     try {
       // In production, this would send data to your backend API
-      console.log('Form submitted:', formState);
-      
+      console.log("Form submitted:", formState);
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setFormStatus({ isSubmitting: false, isSubmitted: true, error: null });
-      setFormState({ name: '', email: '', phone: '', message: '' });
-      
+      setFormState({ name: "", email: "", phone: "", message: "" });
+
       // Reset form after 5 seconds
       setTimeout(() => {
         setFormStatus((prev) => ({ ...prev, isSubmitted: false }));
       }, 5000);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error("Error submitting form:", error);
       setFormStatus({
         isSubmitting: false,
         isSubmitted: false,
-        error: 'Failed to submit form. Please try again later.',
+        error: "Failed to submit form. Please try again later.",
       });
     }
   };
@@ -140,18 +184,23 @@ const Contact = () => {
     <>
       <Helmet>
         <title>Contact Us - Rams Motors</title>
-        <meta name="description" content="Contact Rams Motors in Scarborough. Visit our dealership, call us at (416) 123-4567, or send us a message. We're here to help with all your automotive needs." />
+        <meta
+          name="description"
+          content="Contact Rams Motors in Scarborough. Visit our dealership, call us at (416) 123-4567, or send us a message. We're here to help with all your automotive needs."
+        />
       </Helmet>
       <Navbar />
-      
+
       <div className="pt-16">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-red-600 to-red-800 text-white py-12">
           <div className="max-w-7xl mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">Contact Us</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center">
+              Contact Us
+            </h1>
             <p className="text-lg text-center max-w-3xl mx-auto">
-              Have questions about a vehicle or our services? We're here to help.
-              Reach out to our team and we'll get back to you promptly.
+              Have questions about a vehicle or our services? We're here to
+              help. Reach out to our team and we'll get back to you promptly.
             </p>
           </div>
         </div>
@@ -162,7 +211,7 @@ const Contact = () => {
             {/* Contact Information */}
             <div>
               <h2 className="text-2xl font-bold mb-6">Get In Touch</h2>
-              
+
               <div className="space-y-6 mb-8">
                 <div className="flex items-start space-x-4">
                   <MapPin className="w-6 h-6 text-red-600 mt-1" />
@@ -181,7 +230,10 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Call Us</h3>
                     <p className="text-gray-600">
-                      <a href="tel:+14161234567" className="hover:text-red-600 transition-colors">
+                      <a
+                        href="tel:+14161234567"
+                        className="hover:text-red-600 transition-colors"
+                      >
                         (416) 123-4567
                       </a>
                     </p>
@@ -193,7 +245,10 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Email Us</h3>
                     <p className="text-gray-600">
-                      <a href="mailto:info@ramsmotors.com" className="hover:text-red-600 transition-colors">
+                      <a
+                        href="mailto:info@ramsmotors.com"
+                        className="hover:text-red-600 transition-colors"
+                      >
                         info@ramsmotors.com
                       </a>
                     </p>
@@ -215,15 +270,19 @@ const Contact = () => {
 
               {/* Google Map */}
               <div className="h-64 md:h-80 bg-gray-200 rounded-lg overflow-hidden shadow-md mt-8">
-  {mapError ? (
-    <FallbackMap />
-  ) : (
-    <div ref={mapContainerRef} className="w-full h-full" key="contact-map-container" />
-  )}
-</div>
-              
+                {mapError ? (
+                  <FallbackMap />
+                ) : (
+                  <div
+                    ref={mapContainerRef}
+                    className="w-full h-full"
+                    key="contact-map-container"
+                  />
+                )}
+              </div>
+
               <div className="mt-4">
-                <a 
+                <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${coordinates.lat},${coordinates.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -237,11 +296,14 @@ const Contact = () => {
             {/* Contact Form */}
             <div>
               <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
-              
+
               {formStatus.isSubmitted ? (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6">
                   <strong className="font-bold">Thank you!</strong>
-                  <p>Your message has been sent successfully. We'll get back to you soon.</p>
+                  <p>
+                    Your message has been sent successfully. We'll get back to
+                    you soon.
+                  </p>
                 </div>
               ) : null}
 
@@ -254,7 +316,10 @@ const Contact = () => {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Name *
                   </label>
                   <input
@@ -269,7 +334,10 @@ const Contact = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Email *
                   </label>
                   <input
@@ -284,7 +352,10 @@ const Contact = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Phone Number
                   </label>
                   <input
@@ -298,7 +369,10 @@ const Contact = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Message *
                   </label>
                   <textarea
@@ -317,10 +391,12 @@ const Contact = () => {
                     type="submit"
                     disabled={formStatus.isSubmitting}
                     className={`px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors ${
-                      formStatus.isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                      formStatus.isSubmitting
+                        ? "opacity-75 cursor-not-allowed"
+                        : ""
                     }`}
                   >
-                    {formStatus.isSubmitting ? 'Sending...' : 'Send Message'}
+                    {formStatus.isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </div>
               </form>
@@ -328,8 +404,6 @@ const Contact = () => {
           </div>
         </div>
       </div>
-
-      <Footer />
     </>
   );
 };

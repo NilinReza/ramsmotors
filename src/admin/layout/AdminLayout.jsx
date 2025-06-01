@@ -1,11 +1,12 @@
 // Admin Layout with Navigation
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 const AdminLayout = () => {
   const { user, logout } = useAdminAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
@@ -15,6 +16,18 @@ const AdminLayout = () => {
   ];
 
   const isActive = (href) => location.pathname.startsWith(href);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Redirect to homepage instead of login
+      navigate('/', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if logout fails
+      navigate('/', { replace: true });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -53,9 +66,8 @@ const AdminLayout = () => {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
                 Welcome, {user?.username || 'Admin'}
-              </span>
-              <button
-                onClick={logout}
+              </span>              <button
+                onClick={handleLogout}
                 className="bg-gray-800 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition duration-200"
               >
                 Logout

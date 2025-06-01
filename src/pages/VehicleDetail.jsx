@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
+import dataSync from '../utils/dataSync';
 
 const VehicleDetail = () => {
   const { id } = useParams();
@@ -10,10 +11,7 @@ const VehicleDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadVehicle();
-  }, [id]);
-  const loadVehicle = async () => {
+  const loadVehicle = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiService.getVehicle(id);
@@ -30,7 +28,37 @@ const VehicleDetail = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadVehicle();
+  }, [loadVehicle]);
+
+  // Set up data sync listener for real-time updates
+  useEffect(() => {
+    console.log('🔄 VehicleDetail: Setting up data sync listener for vehicle', id);
+    
+    const unsubscribe = dataSync.onVehicleChange((eventDetail) => {
+      console.log('🔄 VehicleDetail: Received vehicle change event:', eventDetail.action);
+      
+      // Check if this specific vehicle was affected
+      if (eventDetail.vehicleData && eventDetail.vehicleData.id === id) {
+        console.log('🔄 VehicleDetail: This vehicle was updated, refreshing');
+        loadVehicle();
+      } else if (eventDetail.action === 'delete' && eventDetail.vehicleData && eventDetail.vehicleData.id === id) {
+        console.log('🔄 VehicleDetail: This vehicle was deleted, redirecting to inventory');
+        navigate('/inventory');
+      } else if (eventDetail.action === 'bulk_delete' && eventDetail.vehicleData && eventDetail.vehicleData.ids && eventDetail.vehicleData.ids.includes(id)) {
+        console.log('🔄 VehicleDetail: This vehicle was bulk deleted, redirecting to inventory');
+        navigate('/inventory');
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      console.log('🔄 VehicleDetail: Cleaning up data sync listener');
+      unsubscribe();
+    };  }, [id, navigate, loadVehicle]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-US', {
@@ -95,6 +123,10 @@ const VehicleDetail = () => {
                 src={vehicle.images[currentImageIndex].url}
                 alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                 className="w-full h-full object-cover"
+                onError={e => {
+                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzZiNzI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBBdmFpbGFibGU8L3RleHQ+PC9zdmc+';
+                  e.target.onerror = null;
+                }}
               />
               
               {vehicle.images.length > 1 && (
@@ -269,12 +301,15 @@ const VehicleDetail = () => {
                     onClick={() => setCurrentImageIndex(index)}
                     className={`relative h-20 rounded-lg overflow-hidden border-2 transition ${
                       index === currentImageIndex ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
+                    }`}                  >
                     <img
                       src={image.url}
-                      alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} - Image ${index + 1}`}
+                      alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} - View ${index + 1}`}
                       className="w-full h-full object-cover"
+                      onError={e => {
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5OL0E8L3RleHQ+PC9zdmc+';
+                        e.target.onerror = null;
+                      }}
                     />
                   </button>
                 ))}

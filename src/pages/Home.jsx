@@ -126,15 +126,30 @@ const MapComponent = ({ center, zoom }) => {
     
     initMap();
   }, [center, zoom]);
-
-  // Cleanup on unmount - keep this as is, don't null mapRef
+  // Enhanced cleanup on unmount to prevent conflicts
   React.useEffect(() => {
     return () => {
+      // Clean up marker
       if (markerRef.current) {
-        markerRef.current.setMap(null);
+        try {
+          markerRef.current.setMap(null);
+        } catch (error) {
+          console.warn('Warning cleaning up marker:', error);
+        }
         markerRef.current = null;
       }
-      // We intentionally don't null mapRef.current
+      
+      // Clean up map event listeners
+      if (mapRef.current && window.google?.maps?.event) {
+        try {
+          window.google.maps.event.clearInstanceListeners(mapRef.current);
+        } catch (error) {
+          console.warn('Warning cleaning up map listeners:', error);
+        }
+      }
+      
+      // We intentionally don't null mapRef.current to allow reuse
+      console.log('🧹 Home component map cleanup completed');
     };
   }, []);
 

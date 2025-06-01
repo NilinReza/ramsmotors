@@ -1,7 +1,7 @@
 // Analytics Service - Dashboard Stats
 import mockApiService from '../../services/mockApi';
 
-const USE_MOCK_DATA = true; // Toggle for Supabase migration
+const USE_MOCK_DATA = true; // Enable mock data for dashboard functionality
 
 class AnalyticsService {
   constructor() {

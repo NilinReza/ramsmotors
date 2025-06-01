@@ -63,7 +63,7 @@ class SupabaseVehicleService {
     if (!vehicleData) return vehicleData;
     
     const transformed = { ...vehicleData };
-    
+      
     // Transform timestamp fields to camelCase
     if (transformed.created_at) {
       transformed.createdAt = transformed.created_at;
@@ -87,10 +87,42 @@ class SupabaseVehicleService {
       transformed.isFeatured = transformed.is_featured;
       delete transformed.is_featured;
     }
-    if (transformed.is_available) {
+    
+    // Handle is_available to status conversion properly
+    if (transformed.is_available !== undefined) {
       transformed.isAvailable = transformed.is_available;
+      transformed.status = transformed.is_available ? 'Available' : 'Sold';
       delete transformed.is_available;
+    } else {
+      // Default if not present
+      transformed.status = 'Available';
     }
+    
+    // Add default condition if not present in database
+    if (!transformed.condition) {
+      transformed.condition = 'Used';
+    }
+    
+    // Ensure all required form fields have values from database or defaults
+    const formFields = {
+      make: transformed.make || '',
+      model: transformed.model || '',
+      year: transformed.year || new Date().getFullYear(),
+      price: transformed.price || '',
+      mileage: transformed.mileage || '',
+      exterior_color: transformed.exterior_color || '',
+      transmission: transformed.transmission || 'Automatic',
+      fuel_type: transformed.fuel_type || 'Gasoline',
+      body_style: transformed.body_style || 'Sedan',
+      engine: transformed.engine || '',
+      vin: transformed.vin || '',
+      description: transformed.description || '',
+      features: Array.isArray(transformed.features) ? transformed.features : [],
+      condition: transformed.condition || 'Used',
+      status: transformed.status || 'Available'
+    };
+    
+    // Merge form fields into transformed data    Object.assign(transformed, formFields);
     
     // Add backward compatibility fields for components that expect camelCase
     // Keep original snake_case fields for admin forms
@@ -105,16 +137,6 @@ class SupabaseVehicleService {
     }
     if (transformed.engine && !transformed.engineSize) {
       transformed.engineSize = transformed.engine;
-    }
-    
-    // Convert is_available to status for frontend compatibility
-    if ('isAvailable' in transformed) {
-      transformed.status = transformed.isAvailable ? 'Available' : 'Sold';
-    }
-    
-    // Add default condition if not present
-    if (!transformed.condition) {
-      transformed.condition = 'Used';
     }
       // Transform vehicle_images to images array for frontend compatibility
     if (transformed.vehicle_images && Array.isArray(transformed.vehicle_images)) {
@@ -150,10 +172,7 @@ class SupabaseVehicleService {
     this.currentDealerId = dealerId;
   }
   // Get all vehicles with optional filters
-  async getVehicles(filters = {}) {
-    try {
-      console.log('🔍 Supabase: Getting vehicles with filters:', filters);
-      
+  async getVehicles(filters = {}) {    try {
       let query = supabase
         .from('vehicles')
         .select(`
@@ -213,11 +232,8 @@ class SupabaseVehicleService {
 
       if (error) {
         console.error('❌ Supabase vehicles query error:', error);
-        throw error;
-      }
+        throw error;      }
 
-      console.log('✅ Supabase vehicles loaded:', data?.length || 0);
-      
       // Transform database results to frontend format
       const transformedData = data?.map(vehicle => this.transformFromDatabase(vehicle)) || [];
       
@@ -235,12 +251,8 @@ class SupabaseVehicleService {
         count: 0
       };
     }
-  }
-  // Get a single vehicle by ID
-  async getVehicle(id) {
-    try {
-      console.log('🔍 Supabase: Getting vehicle by ID:', id);
-      
+  }  // Get a single vehicle by ID
+  async getVehicle(id) {    try {
       const { data, error } = await supabase
         .from('vehicles')
         .select(`
@@ -257,8 +269,6 @@ class SupabaseVehicleService {
         throw error;
       }
 
-      console.log('✅ Supabase vehicle loaded:', data?.id);
-      
       // Transform database result to frontend format
       const transformedData = this.transformFromDatabase(data);
       
@@ -277,13 +287,10 @@ class SupabaseVehicleService {
   }  // Create a new vehicle
   async createVehicle(vehicleData, images = [], videos = []) {
     try {
-      console.log('🚗 Supabase: Creating vehicle:', vehicleData);
-      console.log('📸 Images received:', images.length);
-      console.log('🎥 Videos received:', videos.length);
-      
       // Transform frontend field names to database field names
-      const transformedData = this.transformToDatabase(vehicleData);      console.log('🔄 Transformed data:', transformedData);
-        // Define supported database columns (based on your actual schema)
+      const transformedData = this.transformToDatabase(vehicleData);
+      
+      // Define supported database columns (based on your actual schema)
       const supportedColumns = [
         'make', 'model', 'year', 'price', 'mileage', 'transmission', 'engine', 
         'vin', 'description', 'features', 'body_style', 'fuel_type', 
@@ -320,12 +327,9 @@ class SupabaseVehicleService {
       if (!vehicleToInsert.is_available) {
         vehicleToInsert.is_available = true;
       }
-      if (!vehicleToInsert.is_featured) {
-        vehicleToInsert.is_featured = false;
+      if (!vehicleToInsert.is_featured) {      vehicleToInsert.is_featured = false;
       }
       
-      console.log('📋 Final vehicle data for insert:', vehicleToInsert);
-
       // Insert vehicle first
       const { data: vehicle, error: vehicleError } = await supabase
         .from('vehicles')
@@ -340,13 +344,8 @@ class SupabaseVehicleService {
         throw vehicleError;
       }
 
-      console.log('✅ Vehicle created:', vehicle.id);
-
       // Handle image uploads if provided
-      if (images && images.length > 0) {
-        console.log('📸 Uploading', images.length, 'images...');
-        
-        const imagePromises = images.map(async (file, index) => {
+      if (images && images.length > 0) {        const imagePromises = images.map(async (file, index) => {
           try {
             // Upload to Cloudinary
             const uploadResult = await cloudinaryService.uploadFile(
@@ -382,16 +381,11 @@ class SupabaseVehicleService {
             .insert(imageRecords);
 
           if (imageError) {
-            console.error('❌ Image records insert error:', imageError);
-          } else {
-            console.log('✅ Images saved:', imageRecords.length);
+            console.error('❌ Image records insert error:', imageError);          } else {
           }
         }
-      }
-
-      // Handle video uploads if provided
+      }      // Handle video uploads if provided
       if (videos && videos.length > 0) {
-        console.log('🎥 Uploading', videos.length, 'videos...');
         
         const videoPromises = videos.map(async (file) => {
           try {
@@ -425,12 +419,9 @@ class SupabaseVehicleService {
         if (videoRecords.length > 0) {
           const { error: videoError } = await supabase
             .from('vehicle_videos')
-            .insert(videoRecords);
-
-          if (videoError) {
+            .insert(videoRecords);          if (videoError) {
             console.error('❌ Video records insert error:', videoError);
           } else {
-            console.log('✅ Videos saved:', videoRecords.length);
           }
         }
       }
@@ -450,10 +441,7 @@ class SupabaseVehicleService {
       };
     }
   }  // Update an existing vehicle
-  async updateVehicle(id, vehicleData, newImages = [], newVideos = []) {
-    try {
-      console.log('🔄 Supabase: Updating vehicle:', id);
-      
+  async updateVehicle(id, vehicleData, newImages = [], newVideos = [], deletedImageIds = [], deletedVideoIds = []) {    try {
       // Transform frontend field names to database field names
       const transformedData = this.transformToDatabase(vehicleData);
       
@@ -474,6 +462,77 @@ class SupabaseVehicleService {
           console.warn(`⚠️ Skipping unsupported field in update: ${key} = ${transformedData[key]}`);
         }
       });
+        // Handle deleted images first (before updating vehicle data)
+      if (deletedImageIds && deletedImageIds.length > 0) {
+        
+        // Get the image records to delete from Cloudinary
+        const { data: imagesToDelete, error: fetchError } = await supabase
+          .from('vehicle_images')
+          .select('public_id')
+          .in('public_id', deletedImageIds)
+          .eq('vehicle_id', id);
+
+        if (fetchError) {
+          console.error('❌ Error fetching images to delete:', fetchError);
+        } else if (imagesToDelete && imagesToDelete.length > 0) {
+          // Delete from Cloudinary
+          const cloudinaryDeletePromises = imagesToDelete.map(async (image) => {
+            if (image.public_id) {              try {
+                await cloudinaryService.deleteFile(image.public_id, 'image');
+              } catch (error) {
+                console.error('❌ Failed to delete image from Cloudinary:', image.public_id, error);
+              }
+            }
+          });
+          
+          await Promise.all(cloudinaryDeletePromises);
+        }
+
+        // Delete from database
+        const { error: deleteError } = await supabase
+          .from('vehicle_images')
+          .delete()
+          .in('public_id', deletedImageIds)
+          .eq('vehicle_id', id);        if (deleteError) {
+          console.error('❌ Error deleting images from database:', deleteError);
+        } else {
+        }
+      }      // Handle deleted videos
+      if (deletedVideoIds && deletedVideoIds.length > 0) {
+        
+        // Get the video records to delete from Cloudinary
+        const { data: videosToDelete, error: fetchError } = await supabase
+          .from('vehicle_videos')
+          .select('public_id')
+          .in('public_id', deletedVideoIds)
+          .eq('vehicle_id', id);
+
+        if (fetchError) {
+          console.error('❌ Error fetching videos to delete:', fetchError);
+        } else if (videosToDelete && videosToDelete.length > 0) {
+          // Delete from Cloudinary
+          const cloudinaryDeletePromises = videosToDelete.map(async (video) => {
+            if (video.public_id) {              try {
+                await cloudinaryService.deleteFile(video.public_id, 'video');
+              } catch (error) {
+                console.error('❌ Failed to delete video from Cloudinary:', video.public_id, error);
+              }
+            }
+          });
+          
+          await Promise.all(cloudinaryDeletePromises);
+        }
+
+        // Delete from database
+        const { error: deleteError } = await supabase
+          .from('vehicle_videos')
+          .delete()
+          .in('public_id', deletedVideoIds)
+          .eq('vehicle_id', id);        if (deleteError) {
+          console.error('❌ Error deleting videos from database:', deleteError);
+        } else {
+        }
+      }
       
       // Update vehicle data
       const { data: vehicle, error: vehicleError } = await supabase
@@ -485,24 +544,14 @@ class SupabaseVehicleService {
         .eq('id', id)
         .eq('dealer_id', this.currentDealerId)
         .select()
-        .single();
-
-      if (vehicleError) {
+        .single();      if (vehicleError) {
         console.error('❌ Supabase vehicle update error:', vehicleError);
         throw vehicleError;
-      }
-
-      console.log('✅ Vehicle updated:', vehicle.id);
-
-      // Handle new image uploads
+      }      // Handle new image uploads
       if (newImages && newImages.length > 0) {
-        console.log('📸 Uploading new images...');
         await this._handleImageUploads(id, newImages);
-      }
-
-      // Handle new video uploads
+      }      // Handle new video uploads
       if (newVideos && newVideos.length > 0) {
-        console.log('🎥 Uploading new videos...');
         await this._handleVideoUploads(id, newVideos);
       }
 
@@ -523,10 +572,7 @@ class SupabaseVehicleService {
   }
 
   // Delete a vehicle and all associated media
-  async deleteVehicle(id) {
-    try {
-      console.log('🗑️ Supabase: Deleting vehicle:', id);
-      
+  async deleteVehicle(id) {    try {
       // Get vehicle with associated media first
       const { data: vehicle } = await supabase
         .from('vehicles')
@@ -569,10 +615,7 @@ class SupabaseVehicleService {
 
       if (error) {
         console.error('❌ Supabase vehicle delete error:', error);
-        throw error;
-      }
-
-      console.log('✅ Vehicle deleted:', id);
+        throw error;      }
 
       return {
         success: true
@@ -585,12 +628,9 @@ class SupabaseVehicleService {
       };
     }
   }
-
   // Bulk delete vehicles
   async bulkDeleteVehicles(vehicleIds) {
     try {
-      console.log('🗑️ Supabase: Bulk deleting vehicles:', vehicleIds);
-      
       const results = await Promise.all(
         vehicleIds.map(id => this.deleteVehicle(id))
       );
@@ -611,12 +651,9 @@ class SupabaseVehicleService {
       };
     }
   }
-
   // Get vehicle statistics
   async getVehicleStats() {
     try {
-      console.log('📊 Supabase: Getting vehicle stats...');
-      
       const { data: vehicles, error } = await supabase
         .from('vehicles')
         .select('is_available, price, created_at')
@@ -729,12 +766,10 @@ class SupabaseVehicleService {
       }
     }
   }
-
   // Initialize demo vehicles if database is empty
   async initializeDemoVehicles() {
     try {
-      console.log('🚗 Checking if demo vehicles need to be initialized...');
-        const { data: existingVehicles, error: checkError } = await supabase
+      const { data: existingVehicles, error: checkError } = await supabase
         .from('vehicles')
         .select('id')
         .eq('dealer_id', this.currentDealerId)
@@ -742,15 +777,9 @@ class SupabaseVehicleService {
 
       if (checkError) {
         throw checkError;
-      }
-
-      // If vehicles already exist, don't add demo data
+      }      // If vehicles already exist, don't add demo data
       if (existingVehicles && existingVehicles.length > 0) {
-        console.log('✅ Vehicles already exist in database');
-        return { success: true, message: 'Vehicles already exist' };
-      }
-
-      console.log('🔄 Initializing demo vehicles...');
+        return { success: true, message: 'Vehicles already exist' };      }
 
       // Demo vehicle data
       const demoVehicles = [
@@ -846,14 +875,10 @@ class SupabaseVehicleService {
       const { data, error: insertError } = await supabase
         .from('vehicles')
         .insert(demoVehicles)
-        .select();
-
-      if (insertError) {
+        .select();      if (insertError) {
         throw insertError;
       }
 
-      console.log('✅ Demo vehicles initialized:', data.length);
-      
       return {
         success: true,
         data,

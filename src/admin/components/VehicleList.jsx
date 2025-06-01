@@ -244,6 +244,10 @@ const VehicleList = ({ vehicles = [], onDelete, onBulkAction, onRefresh }) => {
                           src={vehicle.images[0].url}
                           alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                           className="h-10 w-10 rounded-lg object-cover"
+                          onError={e => {
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                            e.target.onerror = null;
+                          }}
                         />
                       ) : (
                         <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
